@@ -826,6 +826,10 @@
 			"refreshSuccess": "Outils actualisés avec succès",
 			"refreshError": "Échec de l'actualisation des outils",
 			"toolParameters": "Paramètres"
+		},
+		"SELF_IMPROVING": {
+			"name": "Auto-amélioration",
+			"description": "Active l’apprentissage en arrière-plan à partir des résultats des tâches afin d’améliorer le guidage des prompts, les préférences d’outils et l’évitement des erreurs au fil du temps"
 		}
 	},
 	"promptCaching": {

@@ -826,6 +826,10 @@
 			"refreshSuccess": "Eines actualitzades correctament",
 			"refreshError": "Error en actualitzar les eines",
 			"toolParameters": "Paràmetres"
+		},
+		"SELF_IMPROVING": {
+			"name": "Auto-millora",
+			"description": "Activa l'aprenentatge en segon pla a partir dels resultats de les tasques per millorar les indicacions, les preferències d'eines i l'evitació d'errors amb el temps"
 		}
 	},
 	"promptCaching": {

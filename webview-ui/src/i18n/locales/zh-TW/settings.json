@@ -836,6 +836,10 @@
 			"refreshSuccess": "工具重新整理成功",
 			"refreshError": "工具重新整理失敗",
 			"toolParameters": "參數"
+		},
+		"SELF_IMPROVING": {
+			"name": "自我改進",
+			"description": "啟用根據任務結果進行的後台學習，以便隨著時間改善提示詞引導、工具偏好和錯誤避免"
 		}
 	},
 	"promptCaching": {

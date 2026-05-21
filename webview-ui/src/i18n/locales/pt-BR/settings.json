@@ -826,6 +826,10 @@
 			"refreshSuccess": "Ferramentas atualizadas com sucesso",
 			"refreshError": "Falha ao atualizar ferramentas",
 			"toolParameters": "Parâmetros"
+		},
+		"SELF_IMPROVING": {
+			"name": "Autoaperfeiçoamento",
+			"description": "Ative o aprendizado em segundo plano a partir dos resultados das tarefas para melhorar a orientação de prompts, preferências de ferramentas e prevenção de erros ao longo do tempo"
 		}
 	},
 	"promptCaching": {

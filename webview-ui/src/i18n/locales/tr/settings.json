@@ -826,6 +826,10 @@
 			"refreshSuccess": "Araçlar başarıyla yenilendi",
 			"refreshError": "Araçlar yenilenemedi",
 			"toolParameters": "Parametreler"
+		},
+		"SELF_IMPROVING": {
+			"name": "Kendini Geliştirme",
+			"description": "Görev sonuçlarından arka planda öğrenmeyi etkinleştirerek zaman içinde istem yönlendirmesini, araç tercihlerini ve hata önlemeyi iyileştirin"
 		}
 	},
 	"promptCaching": {

@@ -10,6 +10,7 @@ import { isEmpty } from "../../utils/object"
 import { McpHub } from "../../services/mcp/McpHub"
 import { CodeIndexManager } from "../../services/code-index/manager"
 import { SkillsManager } from "../../services/skills/SkillsManager"
+import { SelfImprovingManager } from "../../services/self-improving"
 
 import type { SystemPromptSettings } from "./types"
 import {
@@ -55,6 +56,7 @@ async function generatePrompt(
 	todoList?: TodoItem[],
 	modelId?: string,
 	skillsManager?: SkillsManager,
+	selfImprovingManager?: SelfImprovingManager,
 ): Promise<string> {
 	if (!context) {
 		throw new Error("Extension context is required for generating system prompt")
@@ -79,6 +81,9 @@ async function generatePrompt(
 		getSkillsSection(skillsManager, mode as string),
 	])
 
+	// Inject learned guidance from self-improving system (experiment-gated)
+	const learningContext = selfImprovingManager?.getPromptContextString() || ""
+
 	// Tools catalog is not included in the system prompt.
 	const toolsCatalog = ""
 
@@ -93,7 +98,7 @@ ${getSharedToolUseSection()}${toolsCatalog}
 ${getCapabilitiesSection(cwd, shouldIncludeMcp ? mcpHub : undefined)}
 
 ${modesSection}
-${skillsSection ? `\n${skillsSection}` : ""}
+${skillsSection ? `\n${skillsSection}` : ""}${learningContext}
 ${getRulesSection(cwd, settings)}
 
 ${getSystemInfoSection(cwd)}
@@ -126,6 +131,7 @@ export const SYSTEM_PROMPT = async (
 	todoList?: TodoItem[],
 	modelId?: string,
 	skillsManager?: SkillsManager,
+	selfImprovingManager?: SelfImprovingManager,
 ): Promise<string> => {
 	if (!context) {
 		throw new Error("Extension context is required for generating system prompt")
@@ -154,5 +160,6 @@ export const SYSTEM_PROMPT = async (
 		todoList,
 		modelId,
 		skillsManager,
+		selfImprovingManager,
 	)
 }

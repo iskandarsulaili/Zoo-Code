@@ -826,6 +826,10 @@
 			"refreshSuccess": "Strumenti aggiornati con successo",
 			"refreshError": "Impossibile aggiornare gli strumenti",
 			"toolParameters": "Parametri"
+		},
+		"SELF_IMPROVING": {
+			"name": "Auto-miglioramento",
+			"description": "Abilita l'apprendimento in background dai risultati delle attività per migliorare nel tempo la guida dei prompt, le preferenze degli strumenti e la prevenzione degli errori"
 		}
 	},
 	"promptCaching": {

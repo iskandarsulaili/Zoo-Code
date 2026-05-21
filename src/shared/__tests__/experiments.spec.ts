@@ -14,6 +14,15 @@ describe("experiments", () => {
 		})
 	})
 
+	describe("SELF_IMPROVING", () => {
+		it("is configured correctly", () => {
+			expect(EXPERIMENT_IDS.SELF_IMPROVING).toBe("selfImproving")
+			expect(experimentConfigsMap.SELF_IMPROVING).toMatchObject({
+				enabled: false,
+			})
+		})
+	})
+
 	describe("isEnabled", () => {
 		it("returns false when experiment is not enabled", () => {
 			const experiments: Record<ExperimentId, boolean> = {
@@ -21,6 +30,7 @@ describe("experiments", () => {
 				imageGeneration: false,
 				runSlashCommand: false,
 				customTools: false,
+				selfImproving: false,
 			}
 			expect(Experiments.isEnabled(experiments, EXPERIMENT_IDS.PREVENT_FOCUS_DISRUPTION)).toBe(false)
 		})
@@ -31,6 +41,7 @@ describe("experiments", () => {
 				imageGeneration: false,
 				runSlashCommand: false,
 				customTools: false,
+				selfImproving: false,
 			}
 			expect(Experiments.isEnabled(experiments, EXPERIMENT_IDS.PREVENT_FOCUS_DISRUPTION)).toBe(true)
 		})
@@ -41,8 +52,21 @@ describe("experiments", () => {
 				imageGeneration: false,
 				runSlashCommand: false,
 				customTools: false,
+				selfImproving: false,
 			}
 			expect(Experiments.isEnabled(experiments, EXPERIMENT_IDS.PREVENT_FOCUS_DISRUPTION)).toBe(false)
+		})
+
+		it("returns false for self improving by default", () => {
+			const experiments: Record<ExperimentId, boolean> = {
+				preventFocusDisruption: false,
+				imageGeneration: false,
+				runSlashCommand: false,
+				customTools: false,
+				selfImproving: false,
+			}
+
+			expect(Experiments.isEnabled(experiments, EXPERIMENT_IDS.SELF_IMPROVING)).toBe(false)
 		})
 	})
 })

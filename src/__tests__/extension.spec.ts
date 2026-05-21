@@ -184,6 +184,7 @@ vi.mock("../core/webview/ClineProvider", async () => {
 		postStateToWebview: vi.fn(),
 		postStateToWebviewWithoutClineMessages: vi.fn(),
 		getState: vi.fn().mockResolvedValue({}),
+		initializeSelfImproving: vi.fn().mockResolvedValue(undefined),
 		initializeCloudProfileSyncWhenReady: vi.fn().mockResolvedValue(undefined),
 		providerSettingsManager: {},
 		contextProxy: { getGlobalState: vi.fn() },

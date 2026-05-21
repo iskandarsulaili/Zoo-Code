@@ -826,6 +826,10 @@
 			"refreshSuccess": "ツールが正常に更新されました",
 			"refreshError": "ツールの更新に失敗しました",
 			"toolParameters": "パラメーター"
+		},
+		"SELF_IMPROVING": {
+			"name": "自己改善",
+			"description": "タスク結果からのバックグラウンド学習を有効にして、時間の経過とともにプロンプトのガイダンス、ツールの好み、エラー回避を改善します"
 		}
 	},
 	"promptCaching": {

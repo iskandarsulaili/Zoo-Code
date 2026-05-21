@@ -826,6 +826,10 @@
 			"refreshSuccess": "Tools erfolgreich aktualisiert",
 			"refreshError": "Fehler beim Aktualisieren der Tools",
 			"toolParameters": "Parameter"
+		},
+		"SELF_IMPROVING": {
+			"name": "Selbstverbesserung",
+			"description": "Aktiviert Hintergrundlernen aus Aufgabenergebnissen, um Prompt-Anleitungen, Werkzeugpräferenzen und Fehlervermeidung im Laufe der Zeit zu verbessern"
 		}
 	},
 	"promptCaching": {

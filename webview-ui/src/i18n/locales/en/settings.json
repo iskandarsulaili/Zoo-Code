@@ -879,6 +879,10 @@
 			"name": "Enable model-initiated slash commands",
 			"description": "When enabled, Zoo can run your slash commands to execute workflows."
 		},
+		"SELF_IMPROVING": {
+			"name": "Self-Improving",
+			"description": "Enable background learning from task outcomes to improve prompt guidance, tool preferences, and error avoidance over time"
+		},
 		"CUSTOM_TOOLS": {
 			"name": "Enable custom tools",
 			"description": "When enabled, Zoo can load and use custom TypeScript/JavaScript tools from your project's .roo/tools directory or ~/.roo/tools for global tools. Note: these tools will automatically be auto-approved.",

@@ -826,6 +826,10 @@
 			"refreshSuccess": "Tool berhasil direfresh",
 			"refreshError": "Gagal merefresh tool",
 			"toolParameters": "Parameter"
+		},
+		"SELF_IMPROVING": {
+			"name": "Peningkatan Diri",
+			"description": "Aktifkan pembelajaran latar belakang dari hasil tugas untuk meningkatkan panduan prompt, preferensi alat, dan penghindaran kesalahan seiring waktu"
 		}
 	},
 	"promptCaching": {

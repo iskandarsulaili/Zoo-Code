@@ -366,6 +366,15 @@ export type ExtensionState = Pick<
 	hasOpenedModeSelector: boolean
 	openRouterImageApiKey?: string
 	messageQueue?: QueuedMessage[]
+	selfImprovingStatus?: {
+		enabled: boolean
+		started: boolean
+		patternCount: number
+		eventCount: number
+		actionCount: number
+		lastReviewAt?: number
+		lastCuratorRunAt?: number
+	}
 	lastShownAnnouncementId?: string
 	apiModelId?: string
 	mcpServers?: McpServer[]

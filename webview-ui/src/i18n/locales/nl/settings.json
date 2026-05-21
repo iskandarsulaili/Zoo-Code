@@ -826,6 +826,10 @@
 			"refreshSuccess": "Tools succesvol vernieuwd",
 			"refreshError": "Fout bij vernieuwen van tools",
 			"toolParameters": "Parameters"
+		},
+		"SELF_IMPROVING": {
+			"name": "Zelfverbeterend",
+			"description": "Schakel achtergrondleren in op basis van taakresultaten om promptbegeleiding, toolvoorkeuren en foutvermijding in de loop van de tijd te verbeteren"
 		}
 	},
 	"promptCaching": {

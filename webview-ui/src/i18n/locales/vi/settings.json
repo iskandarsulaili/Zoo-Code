@@ -826,6 +826,10 @@
 			"refreshSuccess": "Làm mới công cụ thành công",
 			"refreshError": "Không thể làm mới công cụ",
 			"toolParameters": "Thông số"
+		},
+		"SELF_IMPROVING": {
+			"name": "Tự cải thiện",
+			"description": "Bật khả năng học nền từ kết quả tác vụ để cải thiện hướng dẫn prompt, tùy chọn công cụ và khả năng tránh lỗi theo thời gian"
 		}
 	},
 	"promptCaching": {

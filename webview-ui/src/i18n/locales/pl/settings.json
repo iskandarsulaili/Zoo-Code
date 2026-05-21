@@ -826,6 +826,10 @@
 			"refreshSuccess": "Narzędzia odświeżone pomyślnie",
 			"refreshError": "Nie udało się odświeżyć narzędzi",
 			"toolParameters": "Parametry"
+		},
+		"SELF_IMPROVING": {
+			"name": "Samodoskonalenie",
+			"description": "Włącz uczenie w tle na podstawie wyników zadań, aby z czasem ulepszać wskazówki dla promptów, preferencje narzędzi i unikanie błędów"
 		}
 	},
 	"promptCaching": {

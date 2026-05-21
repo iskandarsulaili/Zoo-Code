@@ -826,6 +826,10 @@
 			"refreshSuccess": "도구가 성공적으로 새로고침되었습니다",
 			"refreshError": "도구 새로고침에 실패했습니다",
 			"toolParameters": "매개변수"
+		},
+		"SELF_IMPROVING": {
+			"name": "자기 개선",
+			"description": "작업 결과를 바탕으로 백그라운드 학습을 활성화하여 시간이 지남에 따라 프롬프트 안내, 도구 선호도 및 오류 회피를 개선합니다"
 		}
 	},
 	"promptCaching": {
