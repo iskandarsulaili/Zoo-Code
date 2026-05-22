@@ -194,7 +194,7 @@ export class AgentMemoryAdapter implements MemoryBackend {
 			return 0
 		}
 
-		const entries = await this.search(substring, 50)
+		const entries = await this.search(normalized, 50)
 		let removed = 0
 
 		for (const entry of entries) {

@@ -190,11 +190,15 @@ export class PatternAnalyzer {
 			)
 
 			if (existing) {
+				const combinedFrequency = existing.frequency + total
+				const existingSuccesses = existing.successRate * existing.frequency
+				const combinedSuccessRate = (existingSuccesses + counts.success) / combinedFrequency
+
 				patterns.push({
 					...existing,
-					frequency: existing.frequency + total,
+					frequency: combinedFrequency,
 					lastSeenAt: now,
-					successRate,
+					successRate: combinedSuccessRate,
 					confidenceScore: Math.min(1, existing.confidenceScore + 0.02),
 				})
 			} else if (successRate > 0.7) {

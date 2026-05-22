@@ -66,6 +66,7 @@ describe("PatternAnalyzer", () => {
 				patternType: "prompt",
 				summary: "Prefer terminal for reliable results",
 				frequency: 5,
+				successRate: 0.8,
 				context: {
 					toolNames: ["terminal"],
 				},
@@ -84,7 +85,7 @@ describe("PatternAnalyzer", () => {
 		expect(promptPatterns[0]).toMatchObject({
 			id: "prompt-pattern",
 			frequency: 8,
-			successRate: 2 / 3,
+			successRate: 0.75,
 			context: {
 				toolNames: ["terminal"],
 			},

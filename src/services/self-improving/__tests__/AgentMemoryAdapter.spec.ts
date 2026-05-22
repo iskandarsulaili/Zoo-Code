@@ -77,6 +77,35 @@ describe("AgentMemoryAdapter", () => {
 		expect(fetchSpy).not.toHaveBeenCalled()
 	})
 
+	it("should trim forgetByContent queries before searching", async () => {
+		const fetchSpy = vi.fn(async (input: string, init?: RequestInit) => {
+			if (input.endsWith("/agentmemory/livez")) {
+				return { ok: true } as Response
+			}
+
+			if (input.endsWith("/agentmemory/search")) {
+				const body = JSON.parse(String(init?.body)) as { query: string }
+				expect(body.query).toBe("foo")
+				return {
+					ok: true,
+					json: async () => ({ results: [{ id: "memory-1", content: "foo memory" }] }),
+				} as Response
+			}
+
+			if (input.endsWith("/agentmemory/forget")) {
+				return { ok: true, json: async () => ({ success: true }) } as Response
+			}
+
+			throw new Error(`Unexpected fetch call: ${input}`)
+		})
+		vi.stubGlobal("fetch", fetchSpy)
+
+		const adapter = createAdapter()
+		await adapter.initialize()
+
+		await expect(adapter.forgetByContent("  foo  ")).resolves.toBe(1)
+	})
+
 	it("should clean up health check interval on dispose", async () => {
 		vi.stubGlobal("fetch", vi.fn().mockRejectedValue(new Error("Connection refused")))
 
