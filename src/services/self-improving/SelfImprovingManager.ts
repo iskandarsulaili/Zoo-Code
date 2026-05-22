@@ -1,4 +1,5 @@
 import type {
+	Experiments,
 	ImprovementAction,
 	LearnedPattern,
 	LearningEvent,
@@ -36,7 +37,7 @@ type Runtime = {
 export class SelfImprovingManager {
 	private readonly globalStoragePath: string
 	private readonly logger: Logger
-	private readonly getExperiments: () => Record<string, boolean> | undefined
+	private readonly getExperiments: () => Experiments | undefined
 	private readonly getCodeIndexInfo: SelfImprovingManagerOptions["getCodeIndexInfo"]
 	public readonly memoryStore: MemoryBackend
 	public readonly skillUsageStore: SkillUsageStore
@@ -77,7 +78,7 @@ export class SelfImprovingManager {
 		this.transcriptRecall = new TranscriptRecall(options.globalStoragePath, options.logger)
 	}
 
-	static isExperimentEnabled(experiments: Record<string, boolean> | undefined): boolean {
+	static isExperimentEnabled(experiments: Experiments | undefined): boolean {
 		if (!experiments) {
 			return false
 		}
@@ -135,7 +136,7 @@ export class SelfImprovingManager {
 	 * Handle settings change — called when experiments are updated.
 	 * This enables/disables the module at runtime.
 	 */
-	async onSettingsChanged(_experiments: Record<string, boolean> | undefined): Promise<void> {
+	async onSettingsChanged(_experiments: Experiments | undefined): Promise<void> {
 		await this.handleExperimentChange()
 	}
 

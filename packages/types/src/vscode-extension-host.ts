@@ -367,6 +367,22 @@ export type ExtensionState = Pick<
 		patternCount: number
 		eventCount: number
 		actionCount: number
+		memoryEntries: number
+		memoryBackend?: string
+		skillRecords: number
+		curatorStatus: {
+			lastRunAt: number
+			firstRunDone: boolean
+			config: {
+				intervalMs: number
+				minIdleMs: number
+				firstRunDeferred: boolean
+				staleAfterDays: number
+				archiveAfterDays: number
+				backupsEnabled: boolean
+				maxBackups: number
+			}
+		}
 		lastReviewAt?: number
 		lastCuratorRunAt?: number
 	}

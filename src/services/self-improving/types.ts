@@ -1,19 +1,23 @@
-import type {
-	ActionType,
-	FeedbackSignal,
-	ImprovementAction,
-	LearnedPattern,
-	LearningConfig,
-	LearningEvent,
-	LearningState,
-	LearningTelemetry,
-	PatternState,
-	PatternType,
+import {
+	DEFAULT_LEARNING_CONFIG,
+	EMPTY_LEARNING_STATE,
+	type ActionType,
+	type Experiments,
+	type FeedbackSignal,
+	type ImprovementAction,
+	type LearnedPattern,
+	type LearningConfig,
+	type LearningEvent,
+	type LearningState,
+	type LearningTelemetry,
+	type PatternState,
+	type PatternType,
 } from "@roo-code/types"
 
 // Re-export shared types for convenience
 export type {
 	ActionType,
+	Experiments,
 	FeedbackSignal,
 	ImprovementAction,
 	LearnedPattern,
@@ -75,7 +79,7 @@ export interface PromptContext {
 export interface SelfImprovingManagerOptions {
 	globalStoragePath: string
 	logger: Logger
-	getExperiments: () => Record<string, boolean> | undefined
+	getExperiments: () => Experiments | undefined
 	getCodeIndexInfo?: () => CodeIndexInfo
 	/** Memory backend type: "builtin" (default) or "agentmemory" */
 	memoryBackend?: "builtin" | "agentmemory"
@@ -99,40 +103,11 @@ export interface SelfImprovingManagerOptions {
 }
 
 /**
- * Default learning configuration
+ * Shared learning defaults re-exported for local convenience.
  */
-export const DEFAULT_CONFIG: LearningConfig = {
-	enabled: false,
-	reviewOnTurnCount: 10,
-	reviewOnToolIterationCount: 50,
-	maxStoredPatterns: 100,
-	maxStoredEvents: 500,
-	maxPromptPatterns: 5,
-	curatorEnabled: true,
-	curatorIntervalMs: 3600000,
-	staleAfterDays: 14,
-	archiveAfterDays: 60,
-	codeIndexCorrelationEnabled: true,
-}
+export const DEFAULT_CONFIG: LearningConfig = DEFAULT_LEARNING_CONFIG
 
 /**
- * Empty learning state for initialization
+ * Shared empty learning state re-exported for local convenience.
  */
-export const EMPTY_STATE: LearningState = {
-	version: 1,
-	config: DEFAULT_CONFIG,
-	counters: {
-		userTurnsSinceReview: 0,
-		toolIterationsSinceReview: 0,
-	},
-	patterns: [],
-	archivedPatterns: [],
-	recentEvents: [],
-	pendingActions: [],
-	telemetry: {
-		promptEnrichmentUses: 0,
-		toolPreferenceUses: 0,
-		errorAvoidanceUses: 0,
-		skillSuggestionCount: 0,
-	},
-}
+export const EMPTY_STATE: LearningState = EMPTY_LEARNING_STATE
