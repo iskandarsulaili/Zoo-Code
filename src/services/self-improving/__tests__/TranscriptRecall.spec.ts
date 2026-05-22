@@ -80,6 +80,47 @@ describe("TranscriptRecall", () => {
 		expect(recall.getRecent(2).map((entry) => entry.id)).toEqual(["entry-0", "entry-1"])
 	})
 
+	it("serializes concurrent lazy initialization before recording", async () => {
+		const filePath = path.join(tempDir, "self-improving", "transcript-recall.json")
+		await fs.mkdir(path.dirname(filePath), { recursive: true })
+		await fs.writeFile(
+			filePath,
+			JSON.stringify([
+				{
+					id: "entry-0",
+					timestamp: 0,
+					summary: "Existing transcript entry",
+					signal: "TASK_SUCCESS",
+				},
+			]),
+			"utf8",
+		)
+
+		const recall = new TranscriptRecall(tempDir, logger)
+		await Promise.all([
+			recall.record({
+				id: "entry-1",
+				timestamp: 1,
+				summary: "Concurrent record one",
+				signal: "TASK_SUCCESS",
+			}),
+			recall.record({
+				id: "entry-2",
+				timestamp: 2,
+				summary: "Concurrent record two",
+				signal: "TASK_SUCCESS",
+			}),
+		])
+
+		expect(recall.size).toBe(3)
+		expect(
+			recall
+				.getRecent(3)
+				.map((entry) => entry.id)
+				.sort(),
+		).toEqual(["entry-0", "entry-1", "entry-2"])
+	})
+
 	it("ignores malformed persisted entries", async () => {
 		const filePath = path.join(tempDir, "self-improving", "transcript-recall.json")
 		await fs.mkdir(path.dirname(filePath), { recursive: true })

@@ -28,6 +28,7 @@ export class TranscriptRecall {
 	private readonly logger: Logger
 	private entries: TranscriptEntry[] = []
 	private initialized = false
+	private initializePromise: Promise<void> | null = null
 
 	private static readonly MAX_ENTRIES = 1000
 
@@ -41,16 +42,23 @@ export class TranscriptRecall {
 			return
 		}
 
-		try {
-			await fs.mkdir(path.dirname(this.filePath), { recursive: true })
-			await this.loadFromDisk()
-		} catch (error) {
-			this.logger.appendLine(
-				`[TranscriptRecall] Initialization error: ${error instanceof Error ? error.message : String(error)}`,
-			)
-		} finally {
-			this.initialized = true
+		if (!this.initializePromise) {
+			this.initializePromise = (async () => {
+				try {
+					await fs.mkdir(path.dirname(this.filePath), { recursive: true })
+					await this.loadFromDisk()
+				} catch (error) {
+					this.logger.appendLine(
+						`[TranscriptRecall] Initialization error: ${error instanceof Error ? error.message : String(error)}`,
+					)
+				} finally {
+					this.initialized = true
+					this.initializePromise = null
+				}
+			})()
 		}
+
+		await this.initializePromise
 	}
 
 	async record(entry: TranscriptEntry): Promise<void> {
