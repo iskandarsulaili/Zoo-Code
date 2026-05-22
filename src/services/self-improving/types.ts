@@ -77,6 +77,11 @@ export interface SelfImprovingManagerOptions {
 	logger: Logger
 	getExperiments: () => Record<string, boolean> | undefined
 	getCodeIndexInfo?: () => CodeIndexInfo
+	/** Optional SkillsManager reference for skill telemetry integration */
+	skillsManager?: {
+		getSkillNames(): string[]
+		getSkillProvenance(name: string): string
+	}
 }
 
 /**

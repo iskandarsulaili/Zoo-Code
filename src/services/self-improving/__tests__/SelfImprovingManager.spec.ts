@@ -4,6 +4,9 @@ const mockState = vi.hoisted(() => ({
 	analyzers: [] as any[],
 	appliers: [] as any[],
 	adapters: [] as any[],
+	memoryStores: [] as any[],
+	skillUsageStores: [] as any[],
+	actionExecutors: [] as any[],
 }))
 
 function createStoreMock() {
@@ -34,12 +37,35 @@ function createStoreMock() {
 		addEvent: vi.fn(),
 		addPattern: vi.fn(),
 		addAction: vi.fn(),
+		removeAction: vi.fn(),
 		incrementToolIterations: vi.fn(),
 		incrementUserTurns: vi.fn(),
 		resetCounters: vi.fn(),
 		updateTelemetry: vi.fn(),
 		updatePattern: vi.fn(),
 		archivePattern: vi.fn(),
+	}
+}
+
+function createMemoryStoreMock() {
+	return {
+		initialize: vi.fn().mockResolvedValue(undefined),
+		getSnapshotString: vi.fn().mockReturnValue(""),
+		getStats: vi.fn().mockReturnValue({ environment: 0, userProfile: 0, revision: 1 }),
+		takeSnapshot: vi.fn(),
+	}
+}
+
+function createSkillUsageStoreMock() {
+	return {
+		initialize: vi.fn().mockResolvedValue(undefined),
+		getStats: vi.fn().mockReturnValue({ total: 0, active: 0, stale: 0, archived: 0, pinned: 0, agentCreated: 0 }),
+	}
+}
+
+function createActionExecutorMock() {
+	return {
+		executeBatch: vi.fn().mockResolvedValue(new Set()),
 	}
 }
 
@@ -109,6 +135,30 @@ vi.mock("../CodeIndexAdapter", () => ({
 	}),
 }))
 
+vi.mock("../MemoryStore", () => ({
+	MemoryStore: vi.fn().mockImplementation(() => {
+		const store = createMemoryStoreMock()
+		mockState.memoryStores.push(store)
+		return store
+	}),
+}))
+
+vi.mock("../SkillUsageStore", () => ({
+	SkillUsageStore: vi.fn().mockImplementation(() => {
+		const store = createSkillUsageStoreMock()
+		mockState.skillUsageStores.push(store)
+		return store
+	}),
+}))
+
+vi.mock("../ActionExecutor", () => ({
+	ActionExecutor: vi.fn().mockImplementation(() => {
+		const executor = createActionExecutorMock()
+		mockState.actionExecutors.push(executor)
+		return executor
+	}),
+}))
+
 import { SelfImprovingManager } from "../SelfImprovingManager"
 
 describe("SelfImprovingManager", () => {
@@ -131,6 +181,9 @@ describe("SelfImprovingManager", () => {
 		mockState.analyzers.length = 0
 		mockState.appliers.length = 0
 		mockState.adapters.length = 0
+		mockState.memoryStores.length = 0
+		mockState.skillUsageStores.length = 0
+		mockState.actionExecutors.length = 0
 		experiments = undefined
 		logger = { appendLine: vi.fn() }
 	})
@@ -153,6 +206,8 @@ describe("SelfImprovingManager", () => {
 			patternCount: 0,
 			eventCount: 0,
 			actionCount: 0,
+			memoryEntries: 0,
+			skillRecords: 0,
 		})
 	})
 
@@ -164,6 +219,8 @@ describe("SelfImprovingManager", () => {
 
 		expect(mockState.stores).toHaveLength(1)
 		expect(mockState.stores[0].initialize).toHaveBeenCalledTimes(1)
+		expect(mockState.memoryStores[0].initialize).toHaveBeenCalledTimes(1)
+		expect(mockState.skillUsageStores[0].initialize).toHaveBeenCalledTimes(1)
 		expect(vi.getTimerCount()).toBe(2)
 		expect(manager.getStatus()).toMatchObject({ enabled: true, started: true })
 	})
@@ -176,6 +233,7 @@ describe("SelfImprovingManager", () => {
 		const store = mockState.stores[0]
 		const analyzer = mockState.analyzers[0]
 		const applier = mockState.appliers[0]
+		const executor = mockState.actionExecutors[0]
 		const pattern = {
 			id: "pattern-1",
 			patternType: "prompt",
@@ -193,7 +251,7 @@ describe("SelfImprovingManager", () => {
 			id: "action-1",
 			actionType: "PROMPT_ENRICHMENT",
 			target: "system-prompt",
-			payload: {},
+			payload: { summary: "Prefer semantic search before regex search" },
 			timestamp: 1,
 		}
 
@@ -202,8 +260,10 @@ describe("SelfImprovingManager", () => {
 			{ id: "evt-1", signal: "TASK_SUCCESS", timestamp: 1, context: {}, outcome: {} },
 		])
 		store.getPatterns.mockReturnValueOnce([]).mockReturnValue([pattern])
+		store.getPendingActions.mockReturnValue([action])
 		analyzer.analyze.mockReturnValue([pattern])
 		applier.generateActions.mockReturnValue([action])
+		executor.executeBatch.mockResolvedValue(new Set(["action-1"]))
 
 		await manager.recordTaskCompletion({ taskId: "task-1", success: true, toolNames: ["search_files"] })
 
@@ -212,6 +272,8 @@ describe("SelfImprovingManager", () => {
 		expect(analyzer.analyze).toHaveBeenCalledTimes(1)
 		expect(store.addPattern).toHaveBeenCalledWith(pattern)
 		expect(store.addAction).toHaveBeenCalledWith(action)
+		expect(executor.executeBatch).toHaveBeenCalledWith([action])
+		expect(store.removeAction).toHaveBeenCalledWith("action-1")
 		expect(store.persist).toHaveBeenCalled()
 	})
 
@@ -220,20 +282,26 @@ describe("SelfImprovingManager", () => {
 		const manager = createManager()
 		await manager.initialize()
 
-		const applier = mockState.appliers[0]
-		applier.getPromptContext.mockReturnValue({
-			entries: [{ type: "prompt", summary: "Search relevant code before editing", confidence: 0.8 }],
-			revision: 1,
+		const memoryStore = mockState.memoryStores[0]
+		memoryStore.getSnapshotString.mockReturnValue("\n## Learned Context\n- Search relevant code before editing\n")
+		memoryStore.getStats.mockReturnValue({ environment: 2, userProfile: 1, revision: 1 })
+		mockState.skillUsageStores[0].getStats.mockReturnValue({
+			total: 4,
+			active: 3,
+			stale: 1,
+			archived: 0,
+			pinned: 1,
+			agentCreated: 2,
 		})
 
-		expect(manager.getPromptContextString()).toBe(
-			"\n## Learned Guidance\n- [prompt] Search relevant code before editing\n",
-		)
+		expect(manager.getPromptContextString()).toBe("\n## Learned Context\n- Search relevant code before editing\n")
+		expect(manager.getStatus()).toMatchObject({ memoryEntries: 3, skillRecords: 4 })
 
 		experiments = { selfImproving: false }
 		await manager.handleExperimentChange(false)
 
 		expect(mockState.stores[0].persist).toHaveBeenCalledTimes(1)
+		expect(memoryStore.takeSnapshot).toHaveBeenCalledTimes(1)
 		expect(vi.getTimerCount()).toBe(0)
 		expect(manager.getStatus()).toEqual({
 			enabled: false,
@@ -241,6 +309,8 @@ describe("SelfImprovingManager", () => {
 			patternCount: 0,
 			eventCount: 0,
 			actionCount: 0,
+			memoryEntries: 0,
+			skillRecords: 0,
 		})
 	})
 })

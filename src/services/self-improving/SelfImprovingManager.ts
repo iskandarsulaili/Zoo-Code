@@ -12,6 +12,9 @@ import { FeedbackCollector } from "./FeedbackCollector"
 import { PatternAnalyzer } from "./PatternAnalyzer"
 import { ImprovementApplier } from "./ImprovementApplier"
 import { CodeIndexAdapter } from "./CodeIndexAdapter"
+import { MemoryStore } from "./MemoryStore"
+import { SkillUsageStore } from "./SkillUsageStore"
+import { ActionExecutor } from "./ActionExecutor"
 
 const SELF_IMPROVING_EXPERIMENT_ID = "selfImproving"
 const REVIEW_CHECK_INTERVAL_MS = 60_000
@@ -29,6 +32,9 @@ export class SelfImprovingManager {
 	private readonly logger: Logger
 	private readonly getExperiments: () => Record<string, boolean> | undefined
 	private readonly getCodeIndexInfo: SelfImprovingManagerOptions["getCodeIndexInfo"]
+	public readonly memoryStore: MemoryStore
+	public readonly skillUsageStore: SkillUsageStore
+	private readonly actionExecutor: ActionExecutor
 
 	private runtime: Runtime | undefined
 	private started = false
@@ -41,6 +47,9 @@ export class SelfImprovingManager {
 		this.logger = options.logger
 		this.getExperiments = options.getExperiments
 		this.getCodeIndexInfo = options.getCodeIndexInfo
+		this.memoryStore = new MemoryStore(options.globalStoragePath, options.logger)
+		this.skillUsageStore = new SkillUsageStore(options.globalStoragePath, options.logger)
+		this.actionExecutor = new ActionExecutor(this.memoryStore, this.skillUsageStore, options.logger)
 	}
 
 	static isExperimentEnabled(experiments: Record<string, boolean> | undefined): boolean {
@@ -63,6 +72,8 @@ export class SelfImprovingManager {
 		try {
 			const runtime = this.getOrCreateRuntime()
 			await runtime.store.initialize()
+			await this.memoryStore.initialize()
+			await this.skillUsageStore.initialize()
 			this.started = true
 			this.startTimers(runtime.store)
 			this.logger.appendLine(
@@ -103,6 +114,7 @@ export class SelfImprovingManager {
 		try {
 			if (this.started) {
 				await this.runtime?.store.persist()
+				this.memoryStore.takeSnapshot()
 			}
 		} catch (error) {
 			this.logError("Persist on dispose error", error)
@@ -219,6 +231,18 @@ export class SelfImprovingManager {
 				this.runtime.store.addAction(action)
 			}
 
+			const pendingActions = [...this.runtime.store.getPendingActions()] as ImprovementAction[]
+			if (pendingActions.length > 0) {
+				const succeeded = await this.actionExecutor.executeBatch(pendingActions)
+				for (const actionId of succeeded) {
+					this.runtime.store.removeAction(actionId)
+				}
+
+				this.logger.appendLine(
+					`[SelfImprovingManager] Executed ${succeeded.size}/${pendingActions.length} actions`,
+				)
+			}
+
 			this.updateReviewTelemetry(this.runtime.store, actions)
 			this.promptRevision += 1
 			this.runtime.store.resetCounters()
@@ -289,21 +313,12 @@ export class SelfImprovingManager {
 	}
 
 	getPromptContextString(): string {
-		if (!SelfImprovingManager.isExperimentEnabled(this.getExperiments())) {
-			return ""
-		}
-
 		if (!this.started) {
 			return ""
 		}
 
 		try {
-			const context = this.getPromptContext()
-			if (!context || context.entries.length === 0) {
-				return ""
-			}
-
-			return `\n## Learned Guidance\n${context.entries.map((entry) => `- [${entry.type}] ${entry.summary}`).join("\n")}\n`
+			return this.memoryStore.getSnapshotString()
 		} catch {
 			return ""
 		}
@@ -315,31 +330,61 @@ export class SelfImprovingManager {
 		patternCount: number
 		eventCount: number
 		actionCount: number
+		memoryEntries: number
+		skillRecords: number
 		lastReviewAt?: number
 		lastCuratorRunAt?: number
 	} {
 		const enabled = SelfImprovingManager.isExperimentEnabled(this.getExperiments())
 		if (!enabled) {
-			return { enabled: false, started: false, patternCount: 0, eventCount: 0, actionCount: 0 }
+			return {
+				enabled: false,
+				started: false,
+				patternCount: 0,
+				eventCount: 0,
+				actionCount: 0,
+				memoryEntries: 0,
+				skillRecords: 0,
+			}
 		}
 
 		if (!this.started || !this.runtime) {
-			return { enabled: true, started: false, patternCount: 0, eventCount: 0, actionCount: 0 }
+			return {
+				enabled: true,
+				started: false,
+				patternCount: 0,
+				eventCount: 0,
+				actionCount: 0,
+				memoryEntries: 0,
+				skillRecords: 0,
+			}
 		}
 
 		try {
 			const telemetry = this.runtime.store.getTelemetry()
+			const memoryStats = this.memoryStore.getStats()
+			const skillStats = this.skillUsageStore.getStats()
 			return {
 				enabled: true,
 				started: true,
 				patternCount: this.runtime.store.getPatterns().length,
 				eventCount: this.runtime.store.getRecentEvents().length,
 				actionCount: this.runtime.store.getPendingActions().length,
+				memoryEntries: memoryStats.environment + memoryStats.userProfile,
+				skillRecords: skillStats.total,
 				lastReviewAt: telemetry.lastReviewAt,
 				lastCuratorRunAt: telemetry.lastCuratorRunAt,
 			}
 		} catch {
-			return { enabled: true, started: true, patternCount: 0, eventCount: 0, actionCount: 0 }
+			return {
+				enabled: true,
+				started: true,
+				patternCount: 0,
+				eventCount: 0,
+				actionCount: 0,
+				memoryEntries: 0,
+				skillRecords: 0,
+			}
 		}
 	}
 

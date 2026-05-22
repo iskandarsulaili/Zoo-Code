@@ -14,7 +14,12 @@ export { FeedbackCollector } from "./FeedbackCollector"
 export { PatternAnalyzer } from "./PatternAnalyzer"
 export { ImprovementApplier } from "./ImprovementApplier"
 export { CodeIndexAdapter } from "./CodeIndexAdapter"
+export { MemoryStore } from "./MemoryStore"
+export { SkillUsageStore } from "./SkillUsageStore"
+export { ActionExecutor } from "./ActionExecutor"
 
 export type { CodeIndexInfo, Logger, PromptContext, SelfImprovingManagerOptions, TaskEventInfo } from "./types"
+export type { MemoryStoreType } from "./MemoryStore"
+export type { SkillTelemetryRecord, SkillProvenance, SkillLifecycleState } from "./SkillUsageStore"
 
 export { DEFAULT_CONFIG, EMPTY_STATE } from "./types"
