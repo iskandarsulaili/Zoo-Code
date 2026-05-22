@@ -287,6 +287,13 @@ export class ClineProvider
 				// Feed task completion into self-improving system
 				recordTaskCompletionForLearning(true)
 			}
+			const onTaskUserMessageForLearning = (_taskId: string) => {
+				this.selfImprovingManager.recordUserTurn().catch((error) => {
+					this.log(
+						`[SelfImproving] recordUserTurn error: ${error instanceof Error ? error.message : String(error)}`,
+					)
+				})
+			}
 			const onTaskAborted = async () => {
 				this.emit(RooCodeEventName.TaskAborted, instance.taskId)
 
@@ -335,6 +342,7 @@ export class ClineProvider
 			// Attach the listeners.
 			instance.on(RooCodeEventName.TaskStarted, onTaskStarted)
 			instance.on(RooCodeEventName.TaskCompleted, onTaskCompleted)
+			instance.on(RooCodeEventName.TaskUserMessage, onTaskUserMessageForLearning)
 			instance.on(RooCodeEventName.TaskAborted, onTaskAborted)
 			instance.on(RooCodeEventName.TaskFocused, onTaskFocused)
 			instance.on(RooCodeEventName.TaskUnfocused, onTaskUnfocused)
@@ -352,6 +360,7 @@ export class ClineProvider
 			this.taskEventListeners.set(instance, [
 				() => instance.off(RooCodeEventName.TaskStarted, onTaskStarted),
 				() => instance.off(RooCodeEventName.TaskCompleted, onTaskCompleted),
+				() => instance.off(RooCodeEventName.TaskUserMessage, onTaskUserMessageForLearning),
 				() => instance.off(RooCodeEventName.TaskAborted, onTaskAborted),
 				() => instance.off(RooCodeEventName.TaskFocused, onTaskFocused),
 				() => instance.off(RooCodeEventName.TaskUnfocused, onTaskUnfocused),

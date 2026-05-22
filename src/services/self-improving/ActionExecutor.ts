@@ -98,8 +98,11 @@ export class ActionExecutor {
 			source: "learning",
 			tags: ["learned", "prompt"],
 		})
+		if (entry === null) {
+			// null means duplicate or empty content — still counts as "handled"
+		}
 
-		return entry !== null || summary.trim().length > 0
+		return true
 	}
 
 	/**
@@ -118,8 +121,11 @@ export class ActionExecutor {
 			source: "learning",
 			tags: ["error-avoidance", ...errorKeys.map((key) => `error:${key}`)],
 		})
+		if (entry === null) {
+			// null means duplicate — still handled
+		}
 
-		return entry !== null || summary.trim().length > 0
+		return true
 	}
 
 	/**
@@ -138,8 +144,11 @@ export class ActionExecutor {
 			source: "learning",
 			tags: ["tool-preference", ...toolNames.map((toolName) => `tool:${toolName}`)],
 		})
+		if (entry === null) {
+			// null means duplicate — still handled
+		}
 
-		return entry !== null || summary.trim().length > 0
+		return true
 	}
 
 	/**

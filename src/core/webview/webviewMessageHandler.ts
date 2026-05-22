@@ -662,6 +662,8 @@ export const webviewMessageHandler = async (
 
 		case "updateSettings":
 			if (message.updatedSettings) {
+				let experimentsUpdated = false
+
 				for (const [key, value] of Object.entries(message.updatedSettings)) {
 					let newValue = value
 
@@ -740,6 +742,7 @@ export const webviewMessageHandler = async (
 							continue
 						}
 
+						experimentsUpdated = true
 						newValue = {
 							...(getGlobalState("experiments") ?? experimentDefault),
 							...(value as Record<ExperimentId, boolean>),
@@ -751,6 +754,12 @@ export const webviewMessageHandler = async (
 					}
 
 					await provider.contextProxy.setValue(key as keyof RooCodeSettings, newValue)
+				}
+
+				if (experimentsUpdated) {
+					await provider.selfImprovingManager.onSettingsChanged(
+						provider.contextProxy.getGlobalState("experiments"),
+					)
 				}
 
 				await provider.postStateToWebview()

@@ -168,6 +168,9 @@ export class CuratorService {
 				return report
 			}
 
+			// Set lastRunAt immediately to prevent concurrent runs
+			this.lastRunAt = now
+
 			if (this.config.backupsEnabled) {
 				report.backupPath = await this.createBackup(runId)
 			}
@@ -178,7 +181,6 @@ export class CuratorService {
 			report.stats.transitionsApplied = report.transitions.length
 			this.assignStats(report)
 
-			this.lastRunAt = now
 			this.firstRunDone = true
 			await this.saveState()
 

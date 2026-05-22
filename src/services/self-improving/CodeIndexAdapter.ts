@@ -1,4 +1,4 @@
-import type { CodeIndexInfo } from "./types"
+import type { CodeIndexInfo, Logger } from "./types"
 
 /**
  * CodeIndexAdapter - thin read-only adapter for code index integration.
@@ -9,7 +9,10 @@ import type { CodeIndexInfo } from "./types"
 export class CodeIndexAdapter {
 	private readonly getCodeIndexInfo: (() => CodeIndexInfo) | undefined
 
-	constructor(getCodeIndexInfo?: () => CodeIndexInfo) {
+	constructor(
+		private readonly logger?: Logger,
+		getCodeIndexInfo?: () => CodeIndexInfo,
+	) {
 		this.getCodeIndexInfo = getCodeIndexInfo
 	}
 
@@ -24,7 +27,10 @@ export class CodeIndexAdapter {
 
 		try {
 			return this.getCodeIndexInfo()
-		} catch {
+		} catch (error) {
+			this.logger?.appendLine(
+				`[CodeIndexAdapter] Error getting code index info: ${error instanceof Error ? error.message : String(error)}`,
+			)
 			return { available: false, hits: 0 }
 		}
 	}

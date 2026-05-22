@@ -150,13 +150,22 @@ export class MemoryStore {
 	 */
 	getSnapshotString(): string {
 		const context = this.getSnapshotContext()
-		if (context.entries.length === 0) {
-			return ""
-		}
+		if (context.entries.length === 0) return ""
 
 		const lines = context.entries.map((entry) => {
+			// Sanitize: single line, strip control characters, no markdown headings
+			const sanitized = entry.content
+				.split("")
+				.filter((c) => {
+					const code = c.charCodeAt(0)
+					return code >= 32 || code === 9 || code === 10 || code === 13
+				})
+				.join("")
+				.replace(/\n/g, " ")
+				.replace(/^#+\s*/gm, "")
+				.trim()
 			const tags = entry.tags?.length ? ` [${entry.tags.join(", ")}]` : ""
-			return `- ${entry.content}${tags}`
+			return `- ${sanitized}${tags}`
 		})
 
 		return `\n## Learned Context\n${lines.join("\n")}\n`

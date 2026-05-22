@@ -49,6 +49,8 @@ export class SelfImprovingManager {
 	private curatorTimer: ReturnType<typeof setInterval> | null = null
 	private promptRevision = 0
 	private lastUserActivityAt = 0
+	private reviewInFlight = false
+	private curatorInFlight = false
 
 	constructor(options: SelfImprovingManagerOptions) {
 		this.globalStoragePath = options.globalStoragePath
@@ -107,10 +109,11 @@ export class SelfImprovingManager {
 		}
 	}
 
-	async handleExperimentChange(enabled: boolean): Promise<void> {
+	async handleExperimentChange(enabled?: boolean): Promise<void> {
 		try {
 			const experimentEnabled = SelfImprovingManager.isExperimentEnabled(this.getExperiments())
-			if (!enabled || !experimentEnabled) {
+			const shouldEnable = enabled ?? experimentEnabled
+			if (!shouldEnable || !experimentEnabled) {
 				await this.dispose()
 				return
 			}
@@ -119,6 +122,14 @@ export class SelfImprovingManager {
 		} catch (error) {
 			this.logError("Experiment change handling error", error)
 		}
+	}
+
+	/**
+	 * Handle settings change — called when experiments are updated.
+	 * This enables/disables the module at runtime.
+	 */
+	async onSettingsChanged(_experiments: Record<string, boolean> | undefined): Promise<void> {
+		await this.handleExperimentChange()
 	}
 
 	async dispose(): Promise<void> {
@@ -248,6 +259,12 @@ export class SelfImprovingManager {
 			return
 		}
 
+		if (this.reviewInFlight) {
+			this.logger.appendLine("[SelfImprovingManager] Review cycle already in progress, skipping")
+			return
+		}
+		this.reviewInFlight = true
+
 		try {
 			const events = [...this.runtime.store.getRecentEvents()] as LearningEvent[]
 			if (events.length === 0) {
@@ -288,6 +305,8 @@ export class SelfImprovingManager {
 			)
 		} catch (error) {
 			this.logError("Review cycle error", error)
+		} finally {
+			this.reviewInFlight = false
 		}
 	}
 
@@ -299,6 +318,11 @@ export class SelfImprovingManager {
 		if (!this.started || !this.runtime) {
 			return undefined
 		}
+
+		if (this.curatorInFlight) {
+			return undefined
+		}
+		this.curatorInFlight = true
 
 		try {
 			const now = Date.now()
@@ -318,6 +342,8 @@ export class SelfImprovingManager {
 				`[SelfImprovingManager] Curator cycle error: ${error instanceof Error ? error.message : String(error)}`,
 			)
 			return undefined
+		} finally {
+			this.curatorInFlight = false
 		}
 	}
 
@@ -449,7 +475,7 @@ export class SelfImprovingManager {
 				feedbackCollector: new FeedbackCollector(),
 				patternAnalyzer: new PatternAnalyzer(),
 				improvementApplier: new ImprovementApplier(),
-				codeIndexAdapter: new CodeIndexAdapter(this.getCodeIndexInfo),
+				codeIndexAdapter: new CodeIndexAdapter(this.logger, this.getCodeIndexInfo),
 			}
 		}
 
