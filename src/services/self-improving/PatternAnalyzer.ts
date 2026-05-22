@@ -122,7 +122,7 @@ export class PatternAnalyzer {
 		for (const [toolKey, toolEvents] of byToolSet) {
 			const frequency = toolEvents.length
 			const existing = existingPatterns.find(
-				(pattern) => pattern.patternType === "tool" && pattern.summary.includes(toolKey),
+				(pattern) => pattern.patternType === "tool" && this.hasMatchingToolNames(pattern, toolKey.split(",")),
 			)
 
 			if (existing) {
@@ -186,13 +186,13 @@ export class PatternAnalyzer {
 
 			const successRate = counts.success / total
 			const existing = existingPatterns.find(
-				(pattern) => pattern.patternType === "prompt" && pattern.summary.includes(toolName),
+				(pattern) => pattern.patternType === "prompt" && this.hasMatchingToolNames(pattern, [toolName]),
 			)
 
 			if (existing) {
 				patterns.push({
 					...existing,
-					frequency: total,
+					frequency: existing.frequency + total,
 					lastSeenAt: now,
 					successRate,
 					confidenceScore: Math.min(1, existing.confidenceScore + 0.02),
@@ -283,5 +283,17 @@ export class PatternAnalyzer {
 		}
 
 		return [...names]
+	}
+
+	private hasMatchingToolNames(pattern: LearnedPattern, toolNames: string[]): boolean {
+		const existingToolNames = pattern.context.toolNames
+		if (!existingToolNames || existingToolNames.length !== toolNames.length) {
+			return false
+		}
+
+		const normalizedExisting = [...existingToolNames].sort()
+		const normalizedIncoming = [...toolNames].sort()
+
+		return normalizedExisting.every((toolName, index) => toolName === normalizedIncoming[index])
 	}
 }
