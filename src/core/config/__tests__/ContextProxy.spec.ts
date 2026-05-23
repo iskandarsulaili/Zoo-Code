@@ -257,23 +257,27 @@ describe("ContextProxy", () => {
 		})
 
 		it("should persist self-improving memory backend settings in global settings", async () => {
-			await proxy.setValue("memoryBackend" as any, "agentmemory" as any)
-			await proxy.setValue("agentMemoryUrl" as any, "http://agentmemory.internal:4001" as any)
+			const updateGlobalStateSpy = vi.spyOn(proxy, "updateGlobalState")
 
-			const globalSettings = proxy.getGlobalSettings() as any
+			await proxy.setValue("memoryBackend", "agentmemory")
+			await proxy.setValue("agentMemoryUrl", "http://agentmemory.internal:4001")
 
-			expect(globalSettings.memoryBackend).toBe("agentmemory")
-			expect(globalSettings.agentMemoryUrl).toBe("http://agentmemory.internal:4001")
+			expect(updateGlobalStateSpy).toHaveBeenCalledWith("memoryBackend", "agentmemory")
+			expect(updateGlobalStateSpy).toHaveBeenCalledWith("agentMemoryUrl", "http://agentmemory.internal:4001")
+			expect(proxy.getGlobalState("memoryBackend")).toBe("agentmemory")
+			expect(proxy.getGlobalState("agentMemoryUrl")).toBe("http://agentmemory.internal:4001")
 		})
 
 		it("should persist self-improving scope settings in global settings", async () => {
-			await proxy.setValue("selfImprovingScope" as any, "workspace" as any)
-			await proxy.setValue("selfImprovingAutoSkillsScope" as any, "global" as any)
+			const updateGlobalStateSpy = vi.spyOn(proxy, "updateGlobalState")
 
-			const globalSettings = proxy.getGlobalSettings() as any
+			await proxy.setValue("selfImprovingScope", "workspace")
+			await proxy.setValue("selfImprovingAutoSkillsScope", "global")
 
-			expect(globalSettings.selfImprovingScope).toBe("workspace")
-			expect(globalSettings.selfImprovingAutoSkillsScope).toBe("global")
+			expect(updateGlobalStateSpy).toHaveBeenCalledWith("selfImprovingScope", "workspace")
+			expect(updateGlobalStateSpy).toHaveBeenCalledWith("selfImprovingAutoSkillsScope", "global")
+			expect(proxy.getGlobalState("selfImprovingScope")).toBe("workspace")
+			expect(proxy.getGlobalState("selfImprovingAutoSkillsScope")).toBe("global")
 		})
 	})
 
