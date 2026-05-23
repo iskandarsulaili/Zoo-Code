@@ -1470,7 +1470,7 @@ export class Task extends EventEmitter<TaskEvents> implements TaskLike {
 				}
 
 				if (shouldRecordCorrection) {
-					await provider
+					void provider
 						.getSelfImprovingManager?.()
 						?.recordUserCorrection({
 							taskId: this.taskId,
