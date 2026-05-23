@@ -99,6 +99,14 @@ export interface SelfImprovingManagerOptions {
 	skillsManager?: {
 		getSkillNames(): string[]
 		getSkillProvenance(name: string): string
+		createSkillFromContent(
+			name: string,
+			source: "global" | "project",
+			description: string,
+			content: string,
+			modeSlugs?: string[],
+		): Promise<string>
+		updateSkillContent(name: string, source: "global" | "project", content: string, mode?: string): Promise<void>
 	}
 }
 

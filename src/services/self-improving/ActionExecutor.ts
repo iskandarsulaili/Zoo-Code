@@ -4,6 +4,17 @@ import type { MemoryBackend } from "./MemoryBackend"
 import type { SkillProvenance, SkillUsageStore } from "./SkillUsageStore"
 import type { ImprovementAction, Logger } from "./types"
 
+interface SkillMutationManager {
+	createSkillFromContent(
+		name: string,
+		source: "global" | "project",
+		description: string,
+		content: string,
+		modeSlugs?: string[],
+	): Promise<string>
+	updateSkillContent(name: string, source: "global" | "project", content: string, mode?: string): Promise<void>
+}
+
 /**
  * ActionExecutor - consumes the pending action queue and executes
  * improvement actions transactionally.
@@ -13,6 +24,7 @@ import type { ImprovementAction, Logger } from "./types"
  * - ERROR_AVOIDANCE: writes to MemoryStore (environment, with error tags)
  * - TOOL_PREFERENCE: writes to MemoryStore (environment, with tool tags)
  * - SKILL_SUGGESTION: records in SkillUsageStore for future user approval
+ * - SKILL_CREATE / SKILL_UPDATE: safely mutate agent-managed skills via SkillsManager
  *
  * Actions are removed from the queue only after successful execution.
  * Failed actions remain pending for later retry.
@@ -21,11 +33,18 @@ export class ActionExecutor {
 	private readonly memoryStore: MemoryBackend
 	private readonly skillUsageStore: SkillUsageStore
 	private readonly logger: Logger
+	private readonly skillsManager?: SkillMutationManager
 
-	constructor(memoryStore: MemoryBackend, skillUsageStore: SkillUsageStore, logger: Logger) {
+	constructor(
+		memoryStore: MemoryBackend,
+		skillUsageStore: SkillUsageStore,
+		logger: Logger,
+		skillsManager?: SkillMutationManager,
+	) {
 		this.memoryStore = memoryStore
 		this.skillUsageStore = skillUsageStore
 		this.logger = logger
+		this.skillsManager = skillsManager
 	}
 
 	/**
@@ -48,6 +67,12 @@ export class ActionExecutor {
 					break
 				case "SKILL_SUGGESTION":
 					executed = await this.executeSkillSuggestion(action)
+					break
+				case "SKILL_CREATE":
+					executed = await this.executeSkillCreate(action)
+					break
+				case "SKILL_UPDATE":
+					executed = await this.executeSkillUpdate(action)
 					break
 				default:
 					this.logger.appendLine(`[ActionExecutor] Unknown action type: ${action.actionType}`)
@@ -84,32 +109,21 @@ export class ActionExecutor {
 		return succeeded
 	}
 
-	/**
-	 * Execute a PROMPT_ENRICHMENT action.
-	 * Writes the learned guidance to the environment memory store.
-	 */
 	private async executePromptEnrichment(action: ImprovementAction): Promise<boolean> {
 		const summary = this.readStringPayload(action.payload.summary)
 		if (!summary) {
 			return false
 		}
 
-		const entry = await this.memoryStore.store({
+		await this.memoryStore.store({
 			content: summary,
 			source: "learning",
 			tags: ["learned", "prompt"],
 		})
-		if (entry === null) {
-			// null means duplicate or empty content — still counts as "handled"
-		}
 
 		return true
 	}
 
-	/**
-	 * Execute an ERROR_AVOIDANCE action.
-	 * Writes the error avoidance guidance to the environment memory store.
-	 */
 	private async executeErrorAvoidance(action: ImprovementAction): Promise<boolean> {
 		const summary = this.readStringPayload(action.payload.summary)
 		const errorKeys = this.readStringArrayPayload(action.payload.errorKeys)
@@ -118,22 +132,15 @@ export class ActionExecutor {
 			return false
 		}
 
-		const entry = await this.memoryStore.store({
+		await this.memoryStore.store({
 			content: summary,
 			source: "learning",
 			tags: ["error-avoidance", ...errorKeys.map((key) => `error:${key}`)],
 		})
-		if (entry === null) {
-			// null means duplicate — still handled
-		}
 
 		return true
 	}
 
-	/**
-	 * Execute a TOOL_PREFERENCE action.
-	 * Writes the tool preference guidance to the environment memory store.
-	 */
 	private async executeToolPreference(action: ImprovementAction): Promise<boolean> {
 		const summary = this.readStringPayload(action.payload.summary)
 		const toolNames = this.readStringArrayPayload(action.payload.toolNames)
@@ -142,22 +149,15 @@ export class ActionExecutor {
 			return false
 		}
 
-		const entry = await this.memoryStore.store({
+		await this.memoryStore.store({
 			content: summary,
 			source: "learning",
 			tags: ["tool-preference", ...toolNames.map((toolName) => `tool:${toolName}`)],
 		})
-		if (entry === null) {
-			// null means duplicate — still handled
-		}
 
 		return true
 	}
 
-	/**
-	 * Execute a SKILL_SUGGESTION action.
-	 * Records the suggestion in SkillUsageStore for future user approval.
-	 */
 	private async executeSkillSuggestion(action: ImprovementAction): Promise<boolean> {
 		const summary = this.readStringPayload(action.payload.summary)
 		if (!summary) {
@@ -173,6 +173,51 @@ export class ActionExecutor {
 		this.skillUsageStore.getOrCreate(skillId, skillName, createdBy)
 		this.logger.appendLine(`[ActionExecutor] Skill suggestion recorded: ${summary}`)
 
+		return true
+	}
+
+	private async executeSkillCreate(action: ImprovementAction): Promise<boolean> {
+		if (!this.skillsManager) {
+			return false
+		}
+
+		const skillName = this.readStringPayload(action.payload.skillName)
+		const description = this.readStringPayload(action.payload.description)
+		const content = this.readStringPayload(action.payload.content)
+		const source = this.readSkillSource(action.payload.source)
+		const modeSlugs = this.readStringArrayPayload(action.payload.modeSlugs)
+		const skillId = this.readStringPayload(action.payload.skillId) ?? this.buildSkillId(skillName, source)
+		const createdBy = this.readSkillProvenance(action.payload.createdBy) ?? "agent"
+
+		if (!skillName || !description || !content || !source || !skillId) {
+			return false
+		}
+
+		await this.skillsManager.createSkillFromContent(skillName, source, description, content, modeSlugs)
+		this.skillUsageStore.getOrCreate(skillId, skillName, createdBy)
+		this.logger.appendLine(`[ActionExecutor] Skill created: ${skillName}`)
+		return true
+	}
+
+	private async executeSkillUpdate(action: ImprovementAction): Promise<boolean> {
+		if (!this.skillsManager) {
+			return false
+		}
+
+		const skillName = this.readStringPayload(action.payload.skillName)
+		const content = this.readStringPayload(action.payload.content)
+		const source = this.readSkillSource(action.payload.source)
+		const mode = this.readStringPayload(action.payload.mode)
+		const skillId = this.readStringPayload(action.payload.skillId) ?? this.buildSkillId(skillName, source)
+
+		if (!skillName || !content || !source || !skillId) {
+			return false
+		}
+
+		await this.skillsManager.updateSkillContent(skillName, source, content, mode)
+		this.skillUsageStore.getOrCreate(skillId, skillName, "agent")
+		await this.skillUsageStore.bumpPatch(skillId)
+		this.logger.appendLine(`[ActionExecutor] Skill updated: ${skillName}`)
 		return true
 	}
 
@@ -194,5 +239,13 @@ export class ActionExecutor {
 		return value === "agent" || value === "user" || value === "bundled" || value === "hub" || value === "unknown"
 			? value
 			: undefined
+	}
+
+	private readSkillSource(value: unknown): "global" | "project" | undefined {
+		return value === "global" || value === "project" ? value : undefined
+	}
+
+	private buildSkillId(skillName: string | undefined, source: "global" | "project" | undefined): string | undefined {
+		return skillName && source ? `skill:${source}:${skillName}` : undefined
 	}
 }

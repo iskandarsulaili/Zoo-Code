@@ -86,6 +86,82 @@ describe("ActionExecutor", () => {
 		)
 	})
 
+	it("creates agent-managed skills from mutation actions", async () => {
+		const memoryStore = { store: vi.fn() } as any
+		const skillUsageStore = { getOrCreate: vi.fn() } as any
+		const skillsManager = {
+			createSkillFromContent: vi
+				.fn()
+				.mockResolvedValue("/tmp/.roo/skills/workflow-read-file-search-files/SKILL.md"),
+		} as any
+		const executor = new ActionExecutor(memoryStore, skillUsageStore, logger, skillsManager)
+
+		const action: ImprovementAction = {
+			id: "action-skill-create",
+			actionType: "SKILL_CREATE",
+			target: "skills-manager",
+			payload: {
+				skillName: "workflow-read-file-search-files",
+				description: "Use when tasks repeatedly succeed with read_file and search_files.",
+				content:
+					"---\nname: workflow-read-file-search-files\ndescription: Use when tasks repeatedly succeed with read_file and search_files.\n---\n\n# Workflow\n",
+				source: "project",
+				modeSlugs: ["code"],
+			},
+			timestamp: 1,
+		}
+
+		await expect(executor.execute(action)).resolves.toBe(true)
+		expect(skillsManager.createSkillFromContent).toHaveBeenCalledWith(
+			"workflow-read-file-search-files",
+			"project",
+			"Use when tasks repeatedly succeed with read_file and search_files.",
+			expect.stringContaining("name: workflow-read-file-search-files"),
+			["code"],
+		)
+		expect(skillUsageStore.getOrCreate).toHaveBeenCalledWith(
+			"skill:project:workflow-read-file-search-files",
+			"workflow-read-file-search-files",
+			"agent",
+		)
+	})
+
+	it("updates existing agent-managed skills from mutation actions", async () => {
+		const memoryStore = { store: vi.fn() } as any
+		const skillUsageStore = {
+			getOrCreate: vi.fn(),
+			bumpPatch: vi.fn().mockResolvedValue(undefined),
+		} as any
+		const skillsManager = {
+			updateSkillContent: vi.fn().mockResolvedValue(undefined),
+		} as any
+		const executor = new ActionExecutor(memoryStore, skillUsageStore, logger, skillsManager)
+
+		const action: ImprovementAction = {
+			id: "action-skill-update",
+			actionType: "SKILL_UPDATE",
+			target: "skills-manager",
+			payload: {
+				skillId: "skill:project:workflow-read-file-search-files",
+				skillName: "workflow-read-file-search-files",
+				content:
+					"---\nname: workflow-read-file-search-files\ndescription: Updated workflow\n---\n\n# Workflow\nUpdated\n",
+				source: "project",
+				mode: "code",
+			},
+			timestamp: 1,
+		}
+
+		await expect(executor.execute(action)).resolves.toBe(true)
+		expect(skillsManager.updateSkillContent).toHaveBeenCalledWith(
+			"workflow-read-file-search-files",
+			"project",
+			expect.stringContaining("Updated workflow"),
+			"code",
+		)
+		expect(skillUsageStore.bumpPatch).toHaveBeenCalledWith("skill:project:workflow-read-file-search-files")
+	})
+
 	it("keeps invalid actions pending by reporting failure", async () => {
 		const executor = new ActionExecutor({ store: vi.fn() } as any, { getOrCreate: vi.fn() } as any, logger)
 

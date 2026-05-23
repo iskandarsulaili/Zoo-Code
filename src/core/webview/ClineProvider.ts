@@ -235,6 +235,7 @@ export class ClineProvider
 				appendLine: (message: string) => this.log(message),
 			},
 			getExperiments: () => this.contextProxy.getGlobalState("experiments"),
+			skillsManager: this.skillsManager,
 			getCodeIndexInfo: () => {
 				const manager = this.codeIndexManager
 				if (!manager) {

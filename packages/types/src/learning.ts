@@ -123,7 +123,14 @@ export type LearnedPattern = z.infer<typeof learnedPatternSchema>
 /**
  * ActionType - types of improvement actions
  */
-export const actionTypeSchema = z.enum(["PROMPT_ENRICHMENT", "TOOL_PREFERENCE", "ERROR_AVOIDANCE", "SKILL_SUGGESTION"])
+export const actionTypeSchema = z.enum([
+	"PROMPT_ENRICHMENT",
+	"TOOL_PREFERENCE",
+	"ERROR_AVOIDANCE",
+	"SKILL_SUGGESTION",
+	"SKILL_CREATE",
+	"SKILL_UPDATE",
+])
 
 export type ActionType = z.infer<typeof actionTypeSchema>
 

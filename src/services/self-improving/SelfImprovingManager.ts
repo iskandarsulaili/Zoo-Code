@@ -40,6 +40,7 @@ export class SelfImprovingManager {
 	private readonly logger: Logger
 	private readonly getExperiments: () => Experiments | undefined
 	private readonly getCodeIndexInfo: SelfImprovingManagerOptions["getCodeIndexInfo"]
+	private readonly skillsManager: SelfImprovingManagerOptions["skillsManager"]
 	public readonly memoryStore: MemoryBackend
 	public readonly skillUsageStore: SkillUsageStore
 	public readonly curatorService: CuratorService
@@ -61,6 +62,7 @@ export class SelfImprovingManager {
 		this.logger = options.logger
 		this.getExperiments = options.getExperiments
 		this.getCodeIndexInfo = options.getCodeIndexInfo
+		this.skillsManager = options.skillsManager
 		this.memoryStore = MemoryBackendFactory.create(
 			options.memoryBackend || "builtin",
 			options.globalStoragePath,
@@ -68,7 +70,12 @@ export class SelfImprovingManager {
 			options.agentMemoryUrl,
 		)
 		this.skillUsageStore = new SkillUsageStore(options.globalStoragePath, options.logger)
-		this.actionExecutor = new ActionExecutor(this.memoryStore, this.skillUsageStore, options.logger)
+		this.actionExecutor = new ActionExecutor(
+			this.memoryStore,
+			this.skillUsageStore,
+			options.logger,
+			options.skillsManager,
+		)
 		this.curatorService = new CuratorService(
 			options.globalStoragePath,
 			this.skillUsageStore,
@@ -85,6 +92,14 @@ export class SelfImprovingManager {
 		}
 
 		return experiments[SELF_IMPROVING_EXPERIMENT_ID] === true
+	}
+
+	static isAutoSkillsEnabled(experiments: Experiments | undefined): boolean {
+		if (!SelfImprovingManager.isExperimentEnabled(experiments)) {
+			return false
+		}
+
+		return experiments?.selfImprovingAutoSkills === true
 	}
 
 	async initialize(): Promise<void> {
@@ -493,7 +508,11 @@ export class SelfImprovingManager {
 				store: new LearningStore(this.globalStoragePath, this.logger),
 				feedbackCollector: new FeedbackCollector(),
 				patternAnalyzer: new PatternAnalyzer(),
-				improvementApplier: new ImprovementApplier(),
+				improvementApplier: new ImprovementApplier({
+					getSkillNames: () => this.skillsManager?.getSkillNames() ?? [],
+					getSkillProvenance: (name: string) => this.resolveSkillProvenance(name),
+					isAutoSkillsEnabled: () => SelfImprovingManager.isAutoSkillsEnabled(this.getExperiments()),
+				}),
 				codeIndexAdapter: new CodeIndexAdapter(this.logger, this.getCodeIndexInfo),
 			}
 		}
@@ -557,8 +576,24 @@ export class SelfImprovingManager {
 				actions.filter((action) => action.actionType === "ERROR_AVOIDANCE").length,
 			skillSuggestionCount:
 				telemetry.skillSuggestionCount +
-				actions.filter((action) => action.actionType === "SKILL_SUGGESTION").length,
+				actions.filter(
+					(action) =>
+						action.actionType === "SKILL_SUGGESTION" ||
+						action.actionType === "SKILL_CREATE" ||
+						action.actionType === "SKILL_UPDATE",
+				).length,
 		})
+	}
+
+	private resolveSkillProvenance(name: string): string {
+		const agentRecord = this.skillUsageStore
+			.getAll()
+			.find((record) => record.skillName === name && record.createdBy === "agent")
+		if (agentRecord) {
+			return agentRecord.createdBy
+		}
+
+		return this.skillsManager?.getSkillProvenance(name) ?? "unknown"
 	}
 
 	private logError(context: string, error: unknown): void {
