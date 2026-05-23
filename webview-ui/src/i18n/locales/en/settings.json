@@ -881,7 +881,10 @@
 		},
 		"SELF_IMPROVING": {
 			"name": "Self-Improving",
-			"description": "Enable background learning from task outcomes to improve prompt guidance, tool preferences, and error avoidance over time"
+			"description": "Enable background learning from task outcomes to improve prompt guidance, tool preferences, and error avoidance over time",
+			"scopeWorkspace": "Workspace",
+			"scopeGlobal": "Global",
+			"memoryBackendBuiltin": "Built-in"
 		},
 		"SELF_IMPROVING_AUTO_SKILLS": {
 			"name": "Auto-create and update skills from learned workflows",

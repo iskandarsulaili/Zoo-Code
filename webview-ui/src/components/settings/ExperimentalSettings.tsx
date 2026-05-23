@@ -157,8 +157,22 @@ export const ExperimentalSettings = ({
 																/>
 															</SelectTrigger>
 															<SelectContent>
-																<SelectItem value="workspace">Workspace</SelectItem>
-																<SelectItem value="global">Global</SelectItem>
+																<SelectItem value="workspace">
+																	{t(
+																		"settings:experimental.SELF_IMPROVING.scopeWorkspace",
+																		{
+																			defaultValue: "Workspace",
+																		},
+																	)}
+																</SelectItem>
+																<SelectItem value="global">
+																	{t(
+																		"settings:experimental.SELF_IMPROVING.scopeGlobal",
+																		{
+																			defaultValue: "Global",
+																		},
+																	)}
+																</SelectItem>
 															</SelectContent>
 														</Select>
 													</div>
@@ -198,8 +212,22 @@ export const ExperimentalSettings = ({
 																/>
 															</SelectTrigger>
 															<SelectContent>
-																<SelectItem value="workspace">Workspace</SelectItem>
-																<SelectItem value="global">Global</SelectItem>
+																<SelectItem value="workspace">
+																	{t(
+																		"settings:experimental.SELF_IMPROVING.scopeWorkspace",
+																		{
+																			defaultValue: "Workspace",
+																		},
+																	)}
+																</SelectItem>
+																<SelectItem value="global">
+																	{t(
+																		"settings:experimental.SELF_IMPROVING.scopeGlobal",
+																		{
+																			defaultValue: "Global",
+																		},
+																	)}
+																</SelectItem>
 															</SelectContent>
 														</Select>
 													</div>
@@ -226,7 +254,14 @@ export const ExperimentalSettings = ({
 																/>
 															</SelectTrigger>
 															<SelectContent>
-																<SelectItem value="builtin">Built-in</SelectItem>
+																<SelectItem value="builtin">
+																	{t(
+																		"settings:experimental.SELF_IMPROVING.memoryBackendBuiltin",
+																		{
+																			defaultValue: "Built-in",
+																		},
+																	)}
+																</SelectItem>
 																<SelectItem value="agentmemory">agentmemory</SelectItem>
 															</SelectContent>
 														</Select>
