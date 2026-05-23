@@ -526,11 +526,15 @@ describe("SettingsView - Experimental Settings", () => {
 		fireEvent.click(autoSkillsCheckbox)
 		expect(autoSkillsCheckbox).toBeChecked()
 
+		vi.clearAllMocks()
+
 		const selfImprovingScopeSelect = within(content).getByTestId("self-improving-scope-select")
 		fireEvent.change(selfImprovingScopeSelect, { target: { value: "workspace" } })
 
 		const autoSkillsScopeSelect = within(content).getByTestId("self-improving-auto-skills-scope-select")
 		fireEvent.change(autoSkillsScopeSelect, { target: { value: "global" } })
+
+		expect(vscode.postMessage).not.toHaveBeenCalled()
 
 		const saveButton = screen.getByTestId("save-button")
 		fireEvent.click(saveButton)
@@ -560,6 +564,8 @@ describe("SettingsView - Experimental Settings", () => {
 		fireEvent.click(selfImprovingCheckbox)
 		expect(selfImprovingCheckbox).toBeChecked()
 
+		vi.clearAllMocks()
+
 		const selfImprovingScopeSelect = within(content).getByTestId("self-improving-scope-select")
 		fireEvent.change(selfImprovingScopeSelect, { target: { value: "global" } })
 
@@ -569,6 +575,7 @@ describe("SettingsView - Experimental Settings", () => {
 		const urlInput = within(content).getByTestId("self-improving-agent-memory-url-input")
 		fireEvent.change(urlInput, { target: { value: "http://agentmemory.internal:4001" } })
 		expect(urlInput).toHaveValue("http://agentmemory.internal:4001")
+		expect(vscode.postMessage).not.toHaveBeenCalled()
 
 		const saveButton = screen.getByTestId("save-button")
 		fireEvent.click(saveButton)
