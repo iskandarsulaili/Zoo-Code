@@ -88,7 +88,14 @@ describe("AgentMemoryAdapter", () => {
 				expect(body.query).toBe("Foo")
 				return {
 					ok: true,
-					json: async () => ({ results: [{ id: "memory-1", content: "foo memory" }] }),
+					json: async () => ({
+						results: [
+							{
+								observation: { id: "memory-1", content: "foo memory" },
+								score: 1,
+							},
+						],
+					}),
 				} as Response
 			}
 

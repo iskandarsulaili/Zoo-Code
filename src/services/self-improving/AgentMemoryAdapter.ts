@@ -8,9 +8,19 @@ import type { Logger } from "./types"
  */
 const DEFAULT_AGENTMEMORY_URL = "http://localhost:3111"
 
-type AgentMemoryApiResult = {
+/**
+ * Raw shape from agentmemory search API response.
+ * Search returns { results: [{ observation: { id, narrative, ... }, score }] }
+ * NOT the same shape as the remember/write endpoints.
+ */
+type AgentMemorySearchObservation = {
 	id: string
-	content: string
+	narrative?: string
+	content?: string
+	title?: string
+	timestamp?: string
+	confidence?: number
+	concepts?: string[]
 	metadata?: Record<string, unknown>
 }
 
@@ -123,22 +133,30 @@ export class AgentMemoryAdapter implements MemoryBackend {
 
 	/**
 	 * Store a memory entry via agentmemory observe endpoint.
+	 * agentmemory v3 requires: hookType, sessionId, project, cwd, timestamp, narrative.
 	 */
 	async store(entry: Omit<MemoryEntry, "id" | "createdAt" | "updatedAt">): Promise<MemoryEntry | null> {
-		const result = await this.post<{ id: string }>("/agentmemory/observe", {
-			content: entry.content,
+		const sessionId = `zoo-code-${Date.now().toString(36)}`
+		const result = await this.post<{ observationId: string }>("/agentmemory/observe", {
+			hookType: "conversation",
+			sessionId,
+			project: "zoo-code",
+			cwd: typeof process !== "undefined" && process.cwd ? process.cwd() : "/",
+			timestamp: new Date().toISOString(),
+			narrative: entry.content,
+			title: (entry.content ?? "").slice(0, 120),
 			metadata: {
 				source: entry.source,
 				tags: entry.tags,
 				relevanceScore: entry.relevanceScore,
 				expiresAt: entry.expiresAt,
-			},
+			} as Record<string, unknown>,
 		})
 
 		if (!result) return null
 
 		return {
-			id: result.id,
+			id: result.observationId,
 			content: entry.content,
 			source: entry.source,
 			createdAt: Date.now(),
@@ -151,29 +169,41 @@ export class AgentMemoryAdapter implements MemoryBackend {
 
 	/**
 	 * Search memory entries via agentmemory search endpoint.
+	 * Search API returns: { results: [{ observation: { id, narrative, ... }, score }] }
 	 */
 	async search(query: string, maxResults: number = 10): Promise<MemoryEntry[]> {
-		const result = await this.post<{ results: AgentMemoryApiResult[] }>("/agentmemory/search", {
+		const result = await this.post<{
+			results: Array<{ observation: AgentMemorySearchObservation }>
+		}>("/agentmemory/search", {
 			query,
 			limit: maxResults,
 		})
 
 		if (!result?.results) return []
 
-		return result.results.map((entry) => this.mapResultToMemoryEntry(entry))
+		return result.results
+			.map((entry) => this.mapSearchObservationToMemoryEntry(entry.observation))
+			.filter((entry): entry is MemoryEntry => entry !== undefined)
 	}
 
 	/**
-	 * Recall recent memory entries via agentmemory remember endpoint.
+	 * Recall recent memory entries via agentmemory search with broad query.
+	 * Uses a generic query to retrieve recent entries instead of the
+	 * /remember endpoint which requires a specific content string.
 	 */
 	async recall(maxResults: number = 20): Promise<MemoryEntry[]> {
-		const result = await this.post<{ memories: AgentMemoryApiResult[] }>("/agentmemory/remember", {
+		const result = await this.post<{
+			results: Array<{ observation: AgentMemorySearchObservation }>
+		}>("/agentmemory/search", {
+			query: "recent activity task user system",
 			limit: maxResults,
 		})
 
-		if (!result?.memories) return []
+		if (!result?.results) return []
 
-		return result.memories.map((entry) => this.mapResultToMemoryEntry(entry))
+		return result.results
+			.map((entry) => this.mapSearchObservationToMemoryEntry(entry.observation))
+			.filter((entry): entry is MemoryEntry => entry !== undefined)
 	}
 
 	/**
@@ -242,16 +272,18 @@ export class AgentMemoryAdapter implements MemoryBackend {
 		this.initialized = false
 	}
 
-	private mapResultToMemoryEntry(entry: AgentMemoryApiResult): MemoryEntry {
+	private mapSearchObservationToMemoryEntry(obs: AgentMemorySearchObservation): MemoryEntry | undefined {
+		if (!obs || typeof obs.id !== "string") return undefined
+
 		return {
-			id: entry.id,
-			content: entry.content,
-			source: (entry.metadata?.source as MemoryEntry["source"]) || "learning",
-			createdAt: (entry.metadata?.createdAt as number) || Date.now(),
-			updatedAt: (entry.metadata?.updatedAt as number) || Date.now(),
-			relevanceScore: entry.metadata?.relevanceScore as number | undefined,
-			tags: entry.metadata?.tags as string[] | undefined,
-			expiresAt: entry.metadata?.expiresAt as number | undefined,
+			id: obs.id,
+			content: obs.narrative ?? obs.content ?? "",
+			source: (obs.metadata?.source as MemoryEntry["source"]) || "learning",
+			createdAt: obs.timestamp ? new Date(obs.timestamp).getTime() : Date.now(),
+			updatedAt: obs.timestamp ? new Date(obs.timestamp).getTime() : Date.now(),
+			relevanceScore: (obs.confidence as number) ?? (obs.metadata?.relevanceScore as number | undefined),
+			tags: obs.concepts ?? (obs.metadata?.tags as string[] | undefined) ?? [],
+			expiresAt: obs.metadata?.expiresAt as number | undefined,
 		}
 	}
 }

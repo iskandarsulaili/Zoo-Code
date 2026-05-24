@@ -100,47 +100,42 @@ export class LearningStore {
 	}
 
 	private async loadPatternFiles(): Promise<void> {
-		const activePatterns = await this.readPatternDirectory(this.patternsDir)
-		const archivedPatterns = await this.readPatternDirectory(this.archiveDir)
-
-		if (activePatterns.length > 0) {
-			this.state.patterns = activePatterns
-		}
-
-		if (archivedPatterns.length > 0) {
-			this.state.archivedPatterns = archivedPatterns.map((pattern) => ({
+		this.state.patterns = await this.hydratePatternSet(this.patternsDir, this.state.patterns)
+		this.state.archivedPatterns = (await this.hydratePatternSet(this.archiveDir, this.state.archivedPatterns)).map(
+			(pattern) => ({
 				...pattern,
 				state: "archived",
-			}))
-		}
+			}),
+		)
 	}
 
-	private async readPatternDirectory(directoryPath: string): Promise<LearnedPattern[]> {
+	private async hydratePatternSet(
+		directoryPath: string,
+		manifestPatterns: readonly LearnedPattern[],
+	): Promise<LearnedPattern[]> {
+		const hydratedPatterns: LearnedPattern[] = []
+
+		for (const manifestPattern of manifestPatterns) {
+			const persistedPattern = await this.readPatternFile(directoryPath, manifestPattern.id)
+			hydratedPatterns.push(persistedPattern ?? manifestPattern)
+		}
+
+		return hydratedPatterns
+	}
+
+	private async readPatternFile(directoryPath: string, patternId: string): Promise<LearnedPattern | null> {
 		try {
-			const entries = await fs.readdir(directoryPath, { withFileTypes: true })
-			const patterns: LearnedPattern[] = []
-
-			for (const entry of entries) {
-				if (!entry.isFile() || !entry.name.endsWith(".json") || entry.name === PATTERN_INDEX_FILE) {
-					continue
-				}
-
-				try {
-					const raw = await fs.readFile(path.join(directoryPath, entry.name), "utf-8")
-					const parsed = JSON.parse(raw) as LearnedPattern
-					if (parsed?.id) {
-						patterns.push(parsed)
-					}
-				} catch (error) {
-					this.logger.appendLine(
-						`[LearningStore] Failed to read pattern ${entry.name}: ${error instanceof Error ? error.message : String(error)}`,
-					)
-				}
+			const raw = await fs.readFile(path.join(directoryPath, `${patternId}.json`), "utf-8")
+			const parsed = JSON.parse(raw) as LearnedPattern
+			return parsed?.id === patternId ? parsed : null
+		} catch (error) {
+			const errorCode = typeof error === "object" && error !== null && "code" in error ? error.code : undefined
+			if (errorCode !== "ENOENT") {
+				this.logger.appendLine(
+					`[LearningStore] Failed to read pattern ${patternId}.json: ${error instanceof Error ? error.message : String(error)}`,
+				)
 			}
-
-			return patterns
-		} catch {
-			return []
+			return null
 		}
 	}
 

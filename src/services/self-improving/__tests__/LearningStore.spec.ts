@@ -109,6 +109,37 @@ describe("LearningStore", () => {
 		expect(stateAfterFailedPersist).toBe(baselineState)
 	})
 
+	it("ignores uncommitted pattern files that are not referenced by state.json", async () => {
+		const store = new LearningStore(testDir, logger)
+		await store.initialize()
+		await store.persist()
+
+		const baseDir = path.join(testDir, "self-improving")
+		await fs.mkdir(path.join(baseDir, "patterns"), { recursive: true })
+		await fs.writeFile(
+			path.join(baseDir, "patterns", "stray-pattern.json"),
+			JSON.stringify({
+				id: "stray-pattern",
+				patternType: "prompt",
+				state: "active",
+				summary: "Should stay invisible until state.json commits it",
+				confidenceScore: 0.9,
+				frequency: 2,
+				successRate: 1,
+				firstSeenAt: 1,
+				lastSeenAt: 1,
+				sourceSignals: ["TASK_SUCCESS"],
+				context: {},
+			}),
+			"utf-8",
+		)
+
+		const reloadedStore = new LearningStore(testDir, logger)
+		await reloadedStore.initialize()
+
+		expect(reloadedStore.getPatterns()).toEqual([])
+	})
+
 	it("should enforce max patterns bound", async () => {
 		const store = new LearningStore(testDir, logger)
 		await store.initialize()
