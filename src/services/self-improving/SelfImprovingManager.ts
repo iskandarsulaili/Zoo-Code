@@ -93,27 +93,35 @@ export class SelfImprovingManager {
 		this.transcriptRecall = this.createTranscriptRecall()
 	}
 
-	static isExperimentEnabled(experiments: Experiments | undefined): boolean {
-		if (!experiments) {
-			return false
+	static isExperimentEnabled(experiments: Experiments | undefined, persistedEnabled?: boolean): boolean {
+		// Check VS Code experiment flag first
+		if (experiments && experiments[SELF_IMPROVING_EXPERIMENT_ID] === true) {
+			return true
 		}
 
-		return experiments[SELF_IMPROVING_EXPERIMENT_ID] === true
+		// Fallback: check persisted LearningStore config (state.json enabled flag)
+		// This allows enabling self-improving without the VS Code experiment UI toggle
+		if (persistedEnabled === true) {
+			return true
+		}
+
+		return false
 	}
 
-	static isAutoSkillsEnabled(experiments: Experiments | undefined): boolean {
-		if (!SelfImprovingManager.isExperimentEnabled(experiments)) {
+	static isAutoSkillsEnabled(experiments: Experiments | undefined, persistedEnabled?: boolean): boolean {
+		if (!SelfImprovingManager.isExperimentEnabled(experiments, persistedEnabled)) {
 			return false
 		}
 
-		return experiments?.selfImprovingAutoSkills === true
+		// Check auto-skills from either experiments or persisted config
+		if (experiments?.selfImprovingAutoSkills === true) {
+			return true
+		}
+
+		return false
 	}
 
 	async initialize(): Promise<void> {
-		if (!SelfImprovingManager.isExperimentEnabled(this.getExperiments())) {
-			return
-		}
-
 		if (this.started) {
 			return
 		}
@@ -121,6 +129,14 @@ export class SelfImprovingManager {
 		try {
 			const runtime = this.getOrCreateRuntime()
 			await runtime.store.initialize()
+
+			// Gate on VS Code experiment flag OR persisted config (state.json)
+			const experimentEnabled = SelfImprovingManager.isExperimentEnabled(this.getExperiments())
+			const storeEnabled = runtime.store.getConfig().enabled
+			if (!experimentEnabled && !storeEnabled) {
+				return
+			}
+
 			await this.memoryStore.initialize()
 			await this.skillUsageStore.initialize()
 			await this.transcriptRecall.initialize()
@@ -143,8 +159,10 @@ export class SelfImprovingManager {
 	async handleExperimentChange(enabled?: boolean): Promise<void> {
 		try {
 			const experimentEnabled = SelfImprovingManager.isExperimentEnabled(this.getExperiments())
-			const shouldEnable = enabled ?? experimentEnabled
-			if (!shouldEnable || !experimentEnabled) {
+			// Also check persisted config as fallback (state.json enabled)
+			const persistedEnabled = this.runtime?.store.getConfig().enabled ?? false
+			const shouldEnable = enabled ?? (experimentEnabled || persistedEnabled)
+			if (!shouldEnable) {
 				await this.dispose()
 				return
 			}

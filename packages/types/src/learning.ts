@@ -35,15 +35,14 @@ export const learningConfigSchema = z.object({
 export type LearningConfig = z.infer<typeof learningConfigSchema>
 
 export const DEFAULT_LEARNING_CONFIG: LearningConfig = {
-	enabled: false,
-	reviewOnTurnCount: 10,
-	reviewOnToolIterationCount: 50,
-	reviewOnEveryTurn: false,
+	enabled: true,
+	reviewOnTurnCount: 3,
+	reviewOnToolIterationCount: 10,
 	maxStoredPatterns: 100,
 	maxStoredEvents: 500,
 	maxPromptPatterns: 5,
 	curatorEnabled: true,
-	curatorIntervalMs: 3600000,
+	curatorIntervalMs: 3_600_000,
 	staleAfterDays: 14,
 	archiveAfterDays: 60,
 	codeIndexCorrelationEnabled: true,
