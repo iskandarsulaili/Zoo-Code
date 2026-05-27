@@ -288,6 +288,11 @@ export class ClineProvider
 
 				// Feed task completion into self-improving system
 				recordTaskCompletionForLearning(true)
+				this.selfImprovingManager.triggerReview().catch((error) => {
+					this.log(
+						`[SelfImproving] triggerReview error: ${error instanceof Error ? error.message : String(error)}`,
+					)
+				})
 			}
 			const onTaskUserMessageForLearning = (_taskId: string) => {
 				this.selfImprovingManager.recordUserTurn().catch((error) => {
@@ -332,6 +337,16 @@ export class ClineProvider
 
 				// Feed task abortion into self-improving system
 				recordTaskCompletionForLearning(false)
+
+				// Only trigger review on genuine streaming failures, not user-initiated cancels
+				// (user may resume an aborted task, making the failure signal premature)
+				if (instance.abortReason === "streaming_failed") {
+					this.selfImprovingManager.triggerReview().catch((error) => {
+						this.log(
+							`[SelfImproving] triggerReview error: ${error instanceof Error ? error.message : String(error)}`,
+						)
+					})
+				}
 			}
 			const onTaskFocused = () => this.emit(RooCodeEventName.TaskFocused, instance.taskId)
 			const onTaskUnfocused = () => this.emit(RooCodeEventName.TaskUnfocused, instance.taskId)
