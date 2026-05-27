@@ -34,6 +34,7 @@ import { ModeFactoryService } from "./ModeFactoryService"
 import type { InsightsReport } from "./InsightsEngine"
 import { ReviewTeamService } from "./ReviewTeamService"
 import type { ReviewTeamConfig } from "./ReviewTeamService"
+import { QuestionEvaluatorService } from "./QuestionEvaluatorService"
 import { ResilienceService } from "./ResilienceService"
 import { ToolErrorHealer } from "./ToolErrorHealer"
 
@@ -73,6 +74,7 @@ export class SelfImprovingManager {
 	private autoModeOrchestrator: AutoModeOrchestrator
 	private modeFactory: ModeFactoryService
 	private reviewTeam: ReviewTeamService
+	public questionEvaluator: QuestionEvaluatorService
 	public resilienceService: ResilienceService
 	public toolErrorHealer: ToolErrorHealer
 
@@ -116,6 +118,11 @@ export class SelfImprovingManager {
 		this.reviewTeam = new ReviewTeamService(this.logger, {
 			enabled: this.getExperiments()?.selfImprovingReviewTeam ?? true,
 		})
+		this.questionEvaluator = new QuestionEvaluatorService(this.logger, {
+			enabled: this.getExperiments()?.selfImprovingQuestionEvaluation ?? true,
+			useFullTeam: this.getExperiments()?.selfImprovingReviewTeam ?? true,
+		})
+		this.questionEvaluator.setReviewTeam(this.reviewTeam)
 		this.resilienceService = new ResilienceService(this.logger, {
 			enabled: this.getExperiments()?.selfImprovingAutoMode ?? true,
 		})
@@ -536,6 +543,7 @@ export class SelfImprovingManager {
 		lastCuratorRunAt?: number
 		autoMode: Record<string, unknown>
 		reviewTeam: Record<string, unknown>
+		questionEvaluator: Record<string, unknown>
 		resilience: Record<string, unknown>
 		toolErrorHealer: Record<string, unknown>
 	}> {
@@ -550,6 +558,7 @@ export class SelfImprovingManager {
 		}
 		const resilienceStatus = this.resilienceService.getStatus()
 		const toolErrorHealerStatus = this.toolErrorHealer.getStatus()
+		const questionEvaluatorStatus = this.questionEvaluator.getStatus()
 
 		if (!enabled) {
 			return {
@@ -563,6 +572,7 @@ export class SelfImprovingManager {
 				curatorStatus,
 				autoMode: this.autoModeOrchestrator.getStatus(),
 				reviewTeam: reviewTeamStatus,
+				questionEvaluator: questionEvaluatorStatus,
 				resilience: resilienceStatus,
 				toolErrorHealer: toolErrorHealerStatus,
 			}
@@ -580,6 +590,7 @@ export class SelfImprovingManager {
 				curatorStatus,
 				autoMode: this.autoModeOrchestrator.getStatus(),
 				reviewTeam: reviewTeamStatus,
+				questionEvaluator: questionEvaluatorStatus,
 				resilience: resilienceStatus,
 				toolErrorHealer: toolErrorHealerStatus,
 			}
@@ -603,6 +614,7 @@ export class SelfImprovingManager {
 				lastCuratorRunAt: telemetry.lastCuratorRunAt,
 				autoMode: this.autoModeOrchestrator.getStatus(),
 				reviewTeam: reviewTeamStatus,
+				questionEvaluator: questionEvaluatorStatus,
 				resilience: resilienceStatus,
 				toolErrorHealer: toolErrorHealerStatus,
 			}
@@ -618,6 +630,7 @@ export class SelfImprovingManager {
 				curatorStatus,
 				autoMode: this.autoModeOrchestrator.getStatus(),
 				reviewTeam: reviewTeamStatus,
+				questionEvaluator: questionEvaluatorStatus,
 				resilience: resilienceStatus,
 				toolErrorHealer: toolErrorHealerStatus,
 			}

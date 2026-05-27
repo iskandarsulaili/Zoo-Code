@@ -77,6 +77,7 @@ import type { IndexProgressUpdate } from "../../services/code-index/interfaces/m
 import { MdmService } from "../../services/mdm/MdmService"
 import { SelfImprovingManager } from "../../services/self-improving"
 import { TrustService } from "../../services/self-improving/TrustService"
+import { QuestionEvaluatorService } from "../../services/self-improving/QuestionEvaluatorService"
 import { SkillsManager } from "../../services/skills/SkillsManager"
 
 import { fileExistsAtPath } from "../../utils/fs"
@@ -1101,6 +1102,7 @@ export class ClineProvider
 			// Preserve the status from the history item to avoid overwriting it when the task saves messages
 			initialStatus: historyItem.status,
 		})
+		task.questionEvaluator = this.selfImprovingManager.questionEvaluator
 
 		if (isRehydratingCurrentTask) {
 			// Replace the current task in-place to avoid UI flicker
@@ -3006,6 +3008,7 @@ export class ClineProvider
 			startTask: false,
 			...options,
 		})
+		task.questionEvaluator = this.selfImprovingManager.questionEvaluator
 
 		await this.addClineToStack(task)
 		task.start()

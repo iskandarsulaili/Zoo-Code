@@ -66,6 +66,7 @@ export const ExperimentalSettings = ({
 	const autoModeEnabled = experiments[EXPERIMENT_IDS.SELF_IMPROVING_AUTO_MODE] ?? false
 	const reviewTeamEnabled = experiments[EXPERIMENT_IDS.SELF_IMPROVING_REVIEW_TEAM] ?? false
 	const fullTrustEnabled = experiments[EXPERIMENT_IDS.SELF_IMPROVING_FULL_TRUST] ?? false
+	const questionEvaluationEnabled = experiments[EXPERIMENT_IDS.SELF_IMPROVING_QUESTION_EVALUATION] ?? false
 	const currentMemoryBackend = memoryBackend ?? "builtin"
 	const currentSelfImprovingScope = selfImprovingScope ?? "global"
 	const currentAutoSkillsScope = selfImprovingAutoSkillsScope ?? "workspace"
@@ -82,7 +83,8 @@ export const ExperimentalSettings = ({
 							key !== "SELF_IMPROVING_AUTO_SKILLS" &&
 							key !== "SELF_IMPROVING_AUTO_MODE" &&
 							key !== "SELF_IMPROVING_REVIEW_TEAM" &&
-							key !== "SELF_IMPROVING_FULL_TRUST",
+							key !== "SELF_IMPROVING_FULL_TRUST" &&
+							key !== "SELF_IMPROVING_QUESTION_EVALUATION",
 					)
 					.map((config) => {
 						const experimentKey = config[0]
@@ -328,6 +330,17 @@ export const ExperimentalSettings = ({
 														)
 													}
 													checkboxTestId="experimental-self-improving-full-trust-checkbox"
+												/>
+												<ExperimentalFeature
+													experimentKey="SELF_IMPROVING_QUESTION_EVALUATION"
+													enabled={questionEvaluationEnabled}
+													onChange={(enabled) =>
+														setExperimentEnabled(
+															EXPERIMENT_IDS.SELF_IMPROVING_QUESTION_EVALUATION,
+															enabled,
+														)
+													}
+													checkboxTestId="experimental-self-improving-question-evaluation-checkbox"
 												/>
 												<SelfImprovingStatus />
 											</div>

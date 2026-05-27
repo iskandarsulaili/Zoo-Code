@@ -128,6 +128,7 @@ import {
 import { processUserContentMentions } from "../mentions/processUserContentMentions"
 import { getMessagesSinceLastSummary, summarizeConversation, getEffectiveApiHistory } from "../condense"
 import { MessageQueueService } from "../message-queue/MessageQueueService"
+import { QuestionEvaluatorService } from "../../services/self-improving/QuestionEvaluatorService"
 import { AutoApprovalHandler, checkAutoApproval } from "../auto-approval"
 import { MessageManager } from "../message-manager"
 import { validateAndFixToolResultIds } from "./validateToolResultIds"
@@ -286,6 +287,7 @@ export class Task extends EventEmitter<TaskEvents> implements TaskLike {
 	api: ApiHandler
 	private static lastGlobalApiRequestTime?: number
 	private autoApprovalHandler: AutoApprovalHandler
+	questionEvaluator: QuestionEvaluatorService | undefined
 
 	/**
 	 * Reset the global API request timestamp. This should only be used for testing.
@@ -1231,9 +1233,40 @@ export class Task extends EventEmitter<TaskEvents> implements TaskLike {
 			this.denyAsk()
 		} else if (approval.decision === "timeout") {
 			// Store the auto-approval timeout so it can be cancelled if user interacts
-			this.autoApprovalTimeoutRef = setTimeout(() => {
-				const { askResponse, text, images } = approval.fn()
-				this.handleWebviewAskResponse(askResponse, text, images)
+			this.autoApprovalTimeoutRef = setTimeout(async () => {
+				// Use QuestionEvaluatorService to pick the best choice when available
+				if (
+					this.questionEvaluator &&
+					this.questionEvaluator.getConfig().enabled &&
+					type === "followup" &&
+					text
+				) {
+					try {
+						const followUpData = JSON.parse(text) as {
+							question?: string
+							suggest?: Array<{ answer: string; mode?: string }>
+						}
+						if (followUpData.suggest && followUpData.suggest.length > 0) {
+							const evaluation = await this.questionEvaluator.evaluateBestChoice(
+								followUpData.question ?? "",
+								followUpData.suggest.map((s) => ({ text: s.answer, mode: s.mode ?? null })),
+							)
+							this.logger.appendLine(
+								`[Task] Question evaluated: chose #${evaluation.selectedIndex + 1} via ${evaluation.evaluatedBy}: "${evaluation.selectedText.substring(0, 60)}..."`,
+							)
+							this.handleWebviewAskResponse("messageResponse", evaluation.selectedText)
+							this.autoApprovalTimeoutRef = undefined
+							return
+						}
+					} catch (error) {
+						this.logger.appendLine(
+							`[Task] Question evaluation failed, falling back to first choice: ${error}`,
+						)
+					}
+				}
+				// Fallback: first choice
+				const { askResponse, text: responseText, images } = approval.fn()
+				this.handleWebviewAskResponse(askResponse, responseText, images)
 				this.autoApprovalTimeoutRef = undefined
 			}, approval.timeout)
 			timeouts.push(this.autoApprovalTimeoutRef)

@@ -42,6 +42,8 @@ describe("experiments", () => {
 				selfImproving: false,
 				selfImprovingAutoSkills: false,
 				selfImprovingAutoMode: false,
+				selfImprovingReviewTeam: false,
+				selfImprovingFullTrust: false,
 			}
 			expect(Experiments.isEnabled(experiments, EXPERIMENT_IDS.PREVENT_FOCUS_DISRUPTION)).toBe(false)
 		})
@@ -55,6 +57,8 @@ describe("experiments", () => {
 				selfImproving: false,
 				selfImprovingAutoSkills: false,
 				selfImprovingAutoMode: false,
+				selfImprovingReviewTeam: false,
+				selfImprovingFullTrust: false,
 			}
 			expect(Experiments.isEnabled(experiments, EXPERIMENT_IDS.PREVENT_FOCUS_DISRUPTION)).toBe(true)
 		})
@@ -68,6 +72,8 @@ describe("experiments", () => {
 				selfImproving: false,
 				selfImprovingAutoSkills: false,
 				selfImprovingAutoMode: false,
+				selfImprovingReviewTeam: false,
+				selfImprovingFullTrust: false,
 			}
 			expect(Experiments.isEnabled(experiments, EXPERIMENT_IDS.PREVENT_FOCUS_DISRUPTION)).toBe(false)
 		})
@@ -81,6 +87,8 @@ describe("experiments", () => {
 				selfImproving: false,
 				selfImprovingAutoSkills: false,
 				selfImprovingAutoMode: false,
+				selfImprovingReviewTeam: false,
+				selfImprovingFullTrust: false,
 			}
 
 			expect(Experiments.isEnabled(experiments, EXPERIMENT_IDS.SELF_IMPROVING)).toBe(false)

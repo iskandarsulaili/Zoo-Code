@@ -10,6 +10,7 @@ export const EXPERIMENT_IDS = {
 	SELF_IMPROVING_AUTO_MODE: "selfImprovingAutoMode",
 	SELF_IMPROVING_REVIEW_TEAM: "selfImprovingReviewTeam",
 	SELF_IMPROVING_FULL_TRUST: "selfImprovingFullTrust",
+	SELF_IMPROVING_QUESTION_EVALUATION: "selfImprovingQuestionEvaluation",
 } as const satisfies Record<string, ExperimentId>
 
 type _AssertExperimentIds = AssertEqual<Equals<ExperimentId, Values<typeof EXPERIMENT_IDS>>>
@@ -30,6 +31,7 @@ export const experimentConfigsMap: Record<ExperimentKey, ExperimentConfig> = {
 	SELF_IMPROVING_AUTO_MODE: { enabled: true },
 	SELF_IMPROVING_REVIEW_TEAM: { enabled: true },
 	SELF_IMPROVING_FULL_TRUST: { enabled: false },
+	SELF_IMPROVING_QUESTION_EVALUATION: { enabled: true },
 }
 
 export const experimentDefault = Object.fromEntries(
