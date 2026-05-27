@@ -23,7 +23,7 @@ export const experimentConfigsMap: Record<ExperimentKey, ExperimentConfig> = {
 	RUN_SLASH_COMMAND: { enabled: false },
 	CUSTOM_TOOLS: { enabled: false },
 	SELF_IMPROVING: { enabled: true },
-	SELF_IMPROVING_AUTO_SKILLS: { enabled: false },
+	SELF_IMPROVING_AUTO_SKILLS: { enabled: true },
 }
 
 export const experimentDefault = Object.fromEntries(

@@ -175,7 +175,7 @@ export class ImprovementApplier {
 
 	private createSkillMutationAction(pattern: LearnedPattern, now: number): ImprovementAction | undefined {
 		const toolNames = this.normalizeToolNames(pattern.context.toolNames)
-		if (toolNames.length < 2 || pattern.frequency < 2 || pattern.successRate < 0.5) {
+		if (toolNames.length < 1 || pattern.frequency < 2 || pattern.successRate < 0.5) {
 			return undefined
 		}
 

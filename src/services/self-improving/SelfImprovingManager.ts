@@ -122,6 +122,11 @@ export class SelfImprovingManager {
 			return true
 		}
 
+		// Fallback: check persisted LearningStore config (state.json autoSkills flag)
+		if (persistedEnabled === true) {
+			return true
+		}
+
 		return false
 	}
 
