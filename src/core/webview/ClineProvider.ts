@@ -312,6 +312,9 @@ export class ClineProvider
 						`[SelfImproving] triggerReview error: ${error instanceof Error ? error.message : String(error)}`,
 					)
 				})
+
+				// Notify resilience service of task success to reset recovery state
+				this.selfImprovingManager.resilienceService.onTaskSuccess()
 			}
 			const onTaskUserMessageForLearning = (_taskId: string) => {
 				this.selfImprovingManager.recordUserTurn().catch((error) => {

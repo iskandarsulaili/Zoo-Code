@@ -890,6 +890,18 @@
 			"name": "Auto-create and update skills from learned workflows",
 			"description": "When enabled, Self-Improving can turn repeated successful workflows into project skills and keep agent-created skills updated automatically."
 		},
+		"SELF_IMPROVING_AUTO_MODE": {
+			"name": "Full Auto Mode",
+			"description": "Enable fully autonomous self-improving mode with auto-healing and auto mode creation"
+		},
+		"SELF_IMPROVING_REVIEW_TEAM": {
+			"name": "Full Team",
+			"description": "Enable multi-agent review pipeline (Innovator, Contrarian, Devil's Advocate, The Decider)"
+		},
+		"SELF_IMPROVING_FULL_TRUST": {
+			"name": "Full Trust",
+			"description": "Enable auto-approve for commands without user confirmation"
+		},
 		"CUSTOM_TOOLS": {
 			"name": "Enable custom tools",
 			"description": "When enabled, Zoo can load and use custom TypeScript/JavaScript tools from your project's .roo/tools directory or ~/.roo/tools for global tools. Note: these tools will automatically be auto-approved.",

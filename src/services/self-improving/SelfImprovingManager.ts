@@ -34,6 +34,8 @@ import { ModeFactoryService } from "./ModeFactoryService"
 import type { InsightsReport } from "./InsightsEngine"
 import { ReviewTeamService } from "./ReviewTeamService"
 import type { ReviewTeamConfig } from "./ReviewTeamService"
+import { ResilienceService } from "./ResilienceService"
+import { ToolErrorHealer } from "./ToolErrorHealer"
 
 const SELF_IMPROVING_EXPERIMENT_ID = "selfImproving"
 const REVIEW_CHECK_INTERVAL_MS = 60_000
@@ -71,6 +73,8 @@ export class SelfImprovingManager {
 	private autoModeOrchestrator: AutoModeOrchestrator
 	private modeFactory: ModeFactoryService
 	private reviewTeam: ReviewTeamService
+	public resilienceService: ResilienceService
+	public toolErrorHealer: ToolErrorHealer
 
 	private runtime: Runtime | undefined
 	private started = false
@@ -111,6 +115,12 @@ export class SelfImprovingManager {
 		this.autoModeOrchestrator.setModeFactory(this.modeFactory)
 		this.reviewTeam = new ReviewTeamService(this.logger, {
 			enabled: this.getExperiments()?.selfImprovingReviewTeam ?? true,
+		})
+		this.resilienceService = new ResilienceService(this.logger, {
+			enabled: this.getExperiments()?.selfImprovingAutoMode ?? true,
+		})
+		this.toolErrorHealer = new ToolErrorHealer(this.logger, {
+			enabled: this.getExperiments()?.selfImprovingAutoMode ?? true,
 		})
 	}
 
@@ -526,6 +536,8 @@ export class SelfImprovingManager {
 		lastCuratorRunAt?: number
 		autoMode: Record<string, unknown>
 		reviewTeam: Record<string, unknown>
+		resilience: Record<string, unknown>
+		toolErrorHealer: Record<string, unknown>
 	}> {
 		const enabled = SelfImprovingManager.isExperimentEnabled(this.getExperiments())
 		const curatorStatus = this.curatorService.getStatus()
@@ -536,6 +548,9 @@ export class SelfImprovingManager {
 			devilsAdvocateWeight: this.reviewTeam.getConfig().devilsAdvocateWeight,
 			deciderThreshold: this.reviewTeam.getConfig().deciderThreshold,
 		}
+		const resilienceStatus = this.resilienceService.getStatus()
+		const toolErrorHealerStatus = this.toolErrorHealer.getStatus()
+
 		if (!enabled) {
 			return {
 				enabled: false,
@@ -548,6 +563,8 @@ export class SelfImprovingManager {
 				curatorStatus,
 				autoMode: this.autoModeOrchestrator.getStatus(),
 				reviewTeam: reviewTeamStatus,
+				resilience: resilienceStatus,
+				toolErrorHealer: toolErrorHealerStatus,
 			}
 		}
 
@@ -563,6 +580,8 @@ export class SelfImprovingManager {
 				curatorStatus,
 				autoMode: this.autoModeOrchestrator.getStatus(),
 				reviewTeam: reviewTeamStatus,
+				resilience: resilienceStatus,
+				toolErrorHealer: toolErrorHealerStatus,
 			}
 		}
 
@@ -584,6 +603,8 @@ export class SelfImprovingManager {
 				lastCuratorRunAt: telemetry.lastCuratorRunAt,
 				autoMode: this.autoModeOrchestrator.getStatus(),
 				reviewTeam: reviewTeamStatus,
+				resilience: resilienceStatus,
+				toolErrorHealer: toolErrorHealerStatus,
 			}
 		} catch {
 			return {
@@ -597,6 +618,8 @@ export class SelfImprovingManager {
 				curatorStatus,
 				autoMode: this.autoModeOrchestrator.getStatus(),
 				reviewTeam: reviewTeamStatus,
+				resilience: resilienceStatus,
+				toolErrorHealer: toolErrorHealerStatus,
 			}
 		}
 	}

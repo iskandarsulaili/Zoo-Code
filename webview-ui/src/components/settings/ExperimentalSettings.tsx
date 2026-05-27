@@ -63,6 +63,9 @@ export const ExperimentalSettings = ({
 	const { t } = useAppTranslation()
 	const autoSkillsVisible = experiments[EXPERIMENT_IDS.SELF_IMPROVING] ?? false
 	const autoSkillsEnabled = experiments[EXPERIMENT_IDS.SELF_IMPROVING_AUTO_SKILLS] ?? false
+	const autoModeEnabled = experiments[EXPERIMENT_IDS.SELF_IMPROVING_AUTO_MODE] ?? false
+	const reviewTeamEnabled = experiments[EXPERIMENT_IDS.SELF_IMPROVING_REVIEW_TEAM] ?? false
+	const fullTrustEnabled = experiments[EXPERIMENT_IDS.SELF_IMPROVING_FULL_TRUST] ?? false
 	const currentMemoryBackend = memoryBackend ?? "builtin"
 	const currentSelfImprovingScope = selfImprovingScope ?? "global"
 	const currentAutoSkillsScope = selfImprovingAutoSkillsScope ?? "workspace"
@@ -73,7 +76,14 @@ export const ExperimentalSettings = ({
 
 			<Section>
 				{Object.entries(experimentConfigsMap)
-					.filter(([key]) => key in EXPERIMENT_IDS && key !== "SELF_IMPROVING_AUTO_SKILLS")
+					.filter(
+						([key]) =>
+							key in EXPERIMENT_IDS &&
+							key !== "SELF_IMPROVING_AUTO_SKILLS" &&
+							key !== "SELF_IMPROVING_AUTO_MODE" &&
+							key !== "SELF_IMPROVING_REVIEW_TEAM" &&
+							key !== "SELF_IMPROVING_FULL_TRUST",
+					)
 					.map((config) => {
 						const experimentKey = config[0]
 						const label = t(`settings:experimental.${experimentKey}.name`)
@@ -286,6 +296,39 @@ export const ExperimentalSettings = ({
 														/>
 													</div>
 												)}
+												<ExperimentalFeature
+													experimentKey="SELF_IMPROVING_AUTO_MODE"
+													enabled={autoModeEnabled}
+													onChange={(enabled) =>
+														setExperimentEnabled(
+															EXPERIMENT_IDS.SELF_IMPROVING_AUTO_MODE,
+															enabled,
+														)
+													}
+													checkboxTestId="experimental-self-improving-auto-mode-checkbox"
+												/>
+												<ExperimentalFeature
+													experimentKey="SELF_IMPROVING_REVIEW_TEAM"
+													enabled={reviewTeamEnabled}
+													onChange={(enabled) =>
+														setExperimentEnabled(
+															EXPERIMENT_IDS.SELF_IMPROVING_REVIEW_TEAM,
+															enabled,
+														)
+													}
+													checkboxTestId="experimental-self-improving-review-team-checkbox"
+												/>
+												<ExperimentalFeature
+													experimentKey="SELF_IMPROVING_FULL_TRUST"
+													enabled={fullTrustEnabled}
+													onChange={(enabled) =>
+														setExperimentEnabled(
+															EXPERIMENT_IDS.SELF_IMPROVING_FULL_TRUST,
+															enabled,
+														)
+													}
+													checkboxTestId="experimental-self-improving-full-trust-checkbox"
+												/>
 												<SelfImprovingStatus />
 											</div>
 										)}

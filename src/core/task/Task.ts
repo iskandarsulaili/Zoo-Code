@@ -1747,6 +1747,17 @@ export class Task extends EventEmitter<TaskEvents> implements TaskLike {
 				relPath ? ` for '${relPath.toPosix()}'` : ""
 			} without value for required parameter '${paramName}'. Retrying...`,
 		)
+
+		// Notify ToolErrorHealer for self-healing learning
+		const provider = this.providerRef.deref()
+		const healer = provider?.selfImprovingManager?.toolErrorHealer
+		if (healer) {
+			const fix = healer.handleToolError(toolName, paramName)
+			if (fix && fix.autoCorrectable) {
+				console.error(`[ToolErrorHealer] Auto-correcting ${toolName}.${paramName}: ${fix.fix}`)
+			}
+		}
+
 		return formatResponse.toolError(formatResponse.missingToolParameterError(paramName))
 	}
 
@@ -3183,8 +3194,31 @@ export class Task extends EventEmitter<TaskEvents> implements TaskLike {
 								`[Task#${this.taskId}.${this.instanceId}] Stream failed, will retry: ${streamingFailedMessage}`,
 							)
 
-							// Apply exponential backoff similar to first-chunk errors when auto-resubmit is enabled
-							const stateForBackoff = await this.providerRef.deref()?.getState()
+							// Consult ResilienceService for backoff and recovery guidance
+							const provider = this.providerRef.deref()
+							const resilienceService = provider?.selfImprovingManager?.resilienceService
+							const backoffDelay = resilienceService?.onStreamingFailure() ?? -1
+
+							if (backoffDelay < 0) {
+								// Max retries exceeded — enter recovery mode
+								console.error(
+									`[Task#${this.taskId}.${this.instanceId}] Max streaming retries exceeded. Entering recovery mode.`,
+								)
+								const recoverySuggestion = resilienceService?.getRecoverySuggestion()
+								if (recoverySuggestion) {
+									await this.say("error", `[Recovery] ${recoverySuggestion}`)
+								}
+								// Fall through to abort the task
+								this.abortReason = "streaming_failed"
+								await this.abortTask()
+								break
+							}
+
+							// Apply exponential backoff from resilience service
+							await delay(backoffDelay)
+
+							// Also apply existing backoff for auto-approval mode
+							const stateForBackoff = await provider?.getState()
 							if (stateForBackoff?.autoApprovalEnabled) {
 								await this.backoffAndAnnounce(currentItem.retryAttempt ?? 0, error)
 
