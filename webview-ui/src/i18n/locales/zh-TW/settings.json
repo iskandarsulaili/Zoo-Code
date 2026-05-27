@@ -840,6 +840,10 @@
 		"SELF_IMPROVING": {
 			"name": "自我改進",
 			"description": "啟用根據任務結果進行的後台學習，以便隨著時間改善提示詞引導、工具偏好和錯誤避免"
+		},
+		"SELF_IMPROVING_QUESTION_EVALUATION": {
+			"name": "問題評估",
+			"description": "啟用用戶問題評估以提高回應品質和相關性"
 		}
 	},
 	"promptCaching": {

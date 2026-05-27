@@ -830,6 +830,10 @@
 		"SELF_IMPROVING": {
 			"name": "Automejora",
 			"description": "Activa el aprendizaje en segundo plano a partir de los resultados de las tareas para mejorar la orientación de prompts, las preferencias de herramientas y la prevención de errores con el tiempo"
+		},
+		"SELF_IMPROVING_QUESTION_EVALUATION": {
+			"name": "Evaluación de Preguntas",
+			"description": "Habilitar la evaluación de preguntas del usuario para mejorar la calidad y relevancia de las respuestas"
 		}
 	},
 	"promptCaching": {

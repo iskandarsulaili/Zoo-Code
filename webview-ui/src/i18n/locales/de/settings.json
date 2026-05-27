@@ -830,6 +830,10 @@
 		"SELF_IMPROVING": {
 			"name": "Selbstverbesserung",
 			"description": "Aktiviert Hintergrundlernen aus Aufgabenergebnissen, um Prompt-Anleitungen, Werkzeugpräferenzen und Fehlervermeidung im Laufe der Zeit zu verbessern"
+		},
+		"SELF_IMPROVING_QUESTION_EVALUATION": {
+			"name": "Fragenbewertung",
+			"description": "Aktivieren Sie die Bewertung von Benutzerfragen, um die Antwortqualität und -relevanz zu verbessern"
 		}
 	},
 	"promptCaching": {

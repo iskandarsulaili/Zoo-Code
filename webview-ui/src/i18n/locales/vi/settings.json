@@ -830,6 +830,10 @@
 		"SELF_IMPROVING": {
 			"name": "Tự cải thiện",
 			"description": "Bật khả năng học nền từ kết quả tác vụ để cải thiện hướng dẫn prompt, tùy chọn công cụ và khả năng tránh lỗi theo thời gian"
+		},
+		"SELF_IMPROVING_QUESTION_EVALUATION": {
+			"name": "Đánh Giá Câu Hỏi",
+			"description": "Bật đánh giá câu hỏi của người dùng để cải thiện chất lượng và mức độ liên quan của phản hồi"
 		}
 	},
 	"promptCaching": {

@@ -830,6 +830,10 @@
 		"SELF_IMPROVING": {
 			"name": "自我改进",
 			"description": "启用基于任务结果的后台学习，以便随着时间推移改进提示词引导、工具偏好和错误规避"
+		},
+		"SELF_IMPROVING_QUESTION_EVALUATION": {
+			"name": "问题评估",
+			"description": "启用用户问题评估以提高响应质量和相关性"
 		}
 	},
 	"promptCaching": {

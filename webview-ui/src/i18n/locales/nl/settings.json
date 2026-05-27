@@ -830,6 +830,10 @@
 		"SELF_IMPROVING": {
 			"name": "Zelfverbeterend",
 			"description": "Schakel achtergrondleren in op basis van taakresultaten om promptbegeleiding, toolvoorkeuren en foutvermijding in de loop van de tijd te verbeteren"
+		},
+		"SELF_IMPROVING_QUESTION_EVALUATION": {
+			"name": "Vraagevaluatie",
+			"description": "Evaluatie van gebruikersvragen inschakelen om de kwaliteit en relevantie van antwoorden te verbeteren"
 		}
 	},
 	"promptCaching": {

@@ -830,6 +830,10 @@
 		"SELF_IMPROVING": {
 			"name": "자기 개선",
 			"description": "작업 결과를 바탕으로 백그라운드 학습을 활성화하여 시간이 지남에 따라 프롬프트 안내, 도구 선호도 및 오류 회피를 개선합니다"
+		},
+		"SELF_IMPROVING_QUESTION_EVALUATION": {
+			"name": "질문 평가",
+			"description": "응답 품질과 관련성을 개선하기 위해 사용자 질문 평가 활성화"
 		}
 	},
 	"promptCaching": {

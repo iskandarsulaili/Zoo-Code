@@ -902,6 +902,10 @@
 			"name": "Full Trust",
 			"description": "Enable auto-approve for commands without user confirmation"
 		},
+		"SELF_IMPROVING_QUESTION_EVALUATION": {
+			"name": "Question Evaluation",
+			"description": "Enable evaluation of user questions to improve response quality and relevance"
+		},
 		"CUSTOM_TOOLS": {
 			"name": "Enable custom tools",
 			"description": "When enabled, Zoo can load and use custom TypeScript/JavaScript tools from your project's .roo/tools directory or ~/.roo/tools for global tools. Note: these tools will automatically be auto-approved.",

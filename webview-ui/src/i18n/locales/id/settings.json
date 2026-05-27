@@ -830,6 +830,10 @@
 		"SELF_IMPROVING": {
 			"name": "Peningkatan Diri",
 			"description": "Aktifkan pembelajaran latar belakang dari hasil tugas untuk meningkatkan panduan prompt, preferensi alat, dan penghindaran kesalahan seiring waktu"
+		},
+		"SELF_IMPROVING_QUESTION_EVALUATION": {
+			"name": "Evaluasi Pertanyaan",
+			"description": "Aktifkan evaluasi pertanyaan pengguna untuk meningkatkan kualitas dan relevansi respons"
 		}
 	},
 	"promptCaching": {

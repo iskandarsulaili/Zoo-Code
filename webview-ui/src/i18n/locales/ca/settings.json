@@ -830,6 +830,10 @@
 		"SELF_IMPROVING": {
 			"name": "Auto-millora",
 			"description": "Activa l'aprenentatge en segon pla a partir dels resultats de les tasques per millorar les indicacions, les preferències d'eines i l'evitació d'errors amb el temps"
+		},
+		"SELF_IMPROVING_QUESTION_EVALUATION": {
+			"name": "Avaluació de Preguntes",
+			"description": "Activar l'avaluació de preguntes d'usuari per millorar la qualitat i rellevància de les respostes"
 		}
 	},
 	"promptCaching": {

@@ -830,6 +830,10 @@
 		"SELF_IMPROVING": {
 			"name": "Auto-amélioration",
 			"description": "Active l’apprentissage en arrière-plan à partir des résultats des tâches afin d’améliorer le guidage des prompts, les préférences d’outils et l’évitement des erreurs au fil du temps"
+		},
+		"SELF_IMPROVING_QUESTION_EVALUATION": {
+			"name": "Évaluation des Questions",
+			"description": "Activer l'évaluation des questions des utilisateurs pour améliorer la qualité et la pertinence des réponses"
 		}
 	},
 	"promptCaching": {
