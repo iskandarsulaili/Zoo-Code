@@ -1,5 +1,7 @@
 import type { Logger } from "./types"
 import type { ReviewTeamService } from "./ReviewTeamService"
+import type { CodeIndexManager } from "../code-index/manager"
+import type { Experiments } from "./types"
 
 export interface QuestionEvaluationConfig {
 	enabled: boolean
@@ -30,10 +32,26 @@ export class QuestionEvaluatorService {
 	private logger: Logger
 	private config: QuestionEvaluationConfig
 	private reviewTeam: ReviewTeamService | null = null
+	private codeIndexManager: CodeIndexManager | undefined
+	private getExperiments: (() => Experiments | undefined) | undefined
 
 	constructor(logger: Logger, config?: Partial<QuestionEvaluationConfig>) {
 		this.logger = logger
 		this.config = { ...DEFAULT_CONFIG, ...config }
+	}
+
+	/**
+	 * Set the CodeIndexManager instance for vector-search-based question similarity.
+	 */
+	setCodeIndexManager(manager: CodeIndexManager | undefined): void {
+		this.codeIndexManager = manager
+	}
+
+	/**
+	 * Set the experiments accessor for feature gating.
+	 */
+	setExperimentsAccessor(getExperiments: () => Experiments | undefined): void {
+		this.getExperiments = getExperiments
 	}
 
 	getConfig(): QuestionEvaluationConfig {
@@ -248,6 +266,44 @@ export class QuestionEvaluatorService {
 			selectedText: choices[best.index]?.text ?? "",
 			reasoning: best.reasoning,
 			evaluatedBy: "contextual",
+		}
+	}
+
+	/**
+	 * Search for similar past questions using vector search.
+	 * Uses CodeIndexManager to find semantically similar questions and their resolutions.
+	 * Gated behind selfImprovingCodeIndex experiment flag.
+	 */
+	async searchSimilarQuestions(
+		query: string,
+	): Promise<Array<{ question: string; resolution: string; score: number }>> {
+		const experiments = this.getExperiments?.()
+		if (experiments?.selfImprovingCodeIndex === false) {
+			return []
+		}
+
+		if (!this.codeIndexManager) {
+			return []
+		}
+
+		try {
+			const results = await this.codeIndexManager.searchIndex(query)
+			if (!results || results.length === 0) {
+				return []
+			}
+
+			return results
+				.filter((r) => r.payload?.codeChunk)
+				.map((r) => ({
+					question: r.payload?.codeChunk?.slice(0, 200) ?? "",
+					resolution: `Found in ${r.payload?.filePath ?? "unknown"}:${r.payload?.startLine ?? 0}`,
+					score: r.score,
+				}))
+		} catch (error) {
+			this.logger.appendLine(
+				`[QuestionEvaluator] searchSimilarQuestions error: ${error instanceof Error ? error.message : String(error)}`,
+			)
+			return []
 		}
 	}
 

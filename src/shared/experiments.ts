@@ -11,6 +11,11 @@ export const EXPERIMENT_IDS = {
 	SELF_IMPROVING_REVIEW_TEAM: "selfImprovingReviewTeam",
 	SELF_IMPROVING_FULL_TRUST: "selfImprovingFullTrust",
 	SELF_IMPROVING_QUESTION_EVALUATION: "selfImprovingQuestionEvaluation",
+	SELF_IMPROVING_PROMPT_QUALITY: "selfImprovingPromptQuality",
+	SELF_IMPROVING_TOOL_PREFERENCE: "selfImprovingToolPreference",
+	SELF_IMPROVING_SKILL_MERGE: "selfImprovingSkillMerge",
+	SELF_IMPROVING_PERSIST_COUNTS: "selfImprovingPersistCounts",
+	SELF_IMPROVING_CODE_INDEX: "selfImprovingCodeIndex",
 } as const satisfies Record<string, ExperimentId>
 
 type _AssertExperimentIds = AssertEqual<Equals<ExperimentId, Values<typeof EXPERIMENT_IDS>>>
@@ -32,6 +37,11 @@ export const experimentConfigsMap: Record<ExperimentKey, ExperimentConfig> = {
 	SELF_IMPROVING_REVIEW_TEAM: { enabled: true },
 	SELF_IMPROVING_FULL_TRUST: { enabled: true },
 	SELF_IMPROVING_QUESTION_EVALUATION: { enabled: true },
+	SELF_IMPROVING_PROMPT_QUALITY: { enabled: true },
+	SELF_IMPROVING_TOOL_PREFERENCE: { enabled: true },
+	SELF_IMPROVING_SKILL_MERGE: { enabled: true },
+	SELF_IMPROVING_PERSIST_COUNTS: { enabled: true },
+	SELF_IMPROVING_CODE_INDEX: { enabled: true },
 }
 
 export const experimentDefault = Object.fromEntries(

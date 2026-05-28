@@ -5,6 +5,8 @@ import crypto from "crypto"
 import { safeWriteJson } from "../../utils/safeWriteJson"
 import type { ImprovementAction, LearnedPattern, LearningConfig, LearningEvent, LearningState, Logger } from "./types"
 import { EMPTY_STATE } from "./types"
+import type { CodeIndexManager } from "../code-index/manager"
+import type { Experiments } from "./types"
 
 /**
  * File names for the learning store
@@ -33,6 +35,8 @@ export class LearningStore {
 	private state: LearningState
 	private readonly logger: Logger
 	private initialized = false
+	private codeIndexManager: CodeIndexManager | undefined
+	private getExperiments: (() => Experiments | undefined) | undefined
 
 	constructor(baseDir: string, logger: Logger) {
 		this.baseDir = path.join(baseDir, "self-improving")
@@ -40,6 +44,20 @@ export class LearningStore {
 		this.archiveDir = path.join(this.baseDir, ARCHIVE_DIR)
 		this.state = this.createEmptyState()
 		this.logger = logger
+	}
+
+	/**
+	 * Set the CodeIndexManager instance for vector-search-based pattern dedup/retrieval.
+	 */
+	setCodeIndexManager(manager: CodeIndexManager | undefined): void {
+		this.codeIndexManager = manager
+	}
+
+	/**
+	 * Set the experiments accessor for feature gating.
+	 */
+	setExperimentsAccessor(getExperiments: () => Experiments | undefined): void {
+		this.getExperiments = getExperiments
 	}
 
 	/**
@@ -372,6 +390,66 @@ export class LearningStore {
 			recentEvents: [],
 			pendingActions: [],
 			telemetry: { ...EMPTY_STATE.telemetry },
+		}
+	}
+
+	/**
+	 * Search for similar patterns using vector search.
+	 * Uses CodeIndexManager to find semantically similar patterns for dedup/retrieval.
+	 * Gated behind selfImprovingCodeIndex experiment flag.
+	 */
+	async searchSimilarPatterns(query: string): Promise<LearnedPattern[]> {
+		const experiments = this.getExperiments?.()
+		if (experiments?.selfImprovingCodeIndex === false) {
+			return []
+		}
+
+		if (!this.codeIndexManager) {
+			return []
+		}
+
+		try {
+			const results = await this.codeIndexManager.searchIndex(query)
+			if (!results || results.length === 0) {
+				return []
+			}
+
+			// Map vector search results to LearnedPattern instances
+			const patterns: LearnedPattern[] = []
+			for (const result of results) {
+				const payload = result.payload
+				if (!payload?.codeChunk) {
+					continue
+				}
+
+				const filePath = payload.filePath ?? "unknown"
+				const startLine = payload.startLine ?? 0
+				const endLine = payload.endLine ?? 0
+
+				patterns.push({
+					id: crypto.randomUUID(),
+					patternType: "code-index",
+					state: "active",
+					summary: `[${filePath}:${startLine}-${endLine}] ${payload.codeChunk.slice(0, 180)}`,
+					confidenceScore: Math.min(1, result.score),
+					frequency: 1,
+					successRate: 0.5,
+					firstSeenAt: Date.now(),
+					lastSeenAt: Date.now(),
+					sourceSignals: ["CODE_INDEX_HIT"],
+					context: {
+						toolNames: [],
+						errorKeys: [],
+					},
+				})
+			}
+
+			return patterns
+		} catch (error) {
+			this.logger.appendLine(
+				`[LearningStore] searchSimilarPatterns error: ${error instanceof Error ? error.message : String(error)}`,
+			)
+			return []
 		}
 	}
 

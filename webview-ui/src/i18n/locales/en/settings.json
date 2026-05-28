@@ -909,6 +909,26 @@
 			"name": "Question Evaluation",
 			"description": "Enable evaluation of user questions to improve response quality and relevance"
 		},
+		"SELF_IMPROVING_PROMPT_QUALITY": {
+			"name": "Prompt Quality Analysis",
+			"description": "Analyze prompt quality patterns for self-improvement"
+		},
+		"SELF_IMPROVING_TOOL_PREFERENCE": {
+			"name": "Tool Preference Feedback",
+			"description": "Collect tool preference feedback for self-improvement"
+		},
+		"SELF_IMPROVING_SKILL_MERGE": {
+			"name": "Skill Merge",
+			"description": "Automatically merge similar skills into umbrella skills"
+		},
+		"SELF_IMPROVING_PERSIST_COUNTS": {
+			"name": "Persist Review Counts",
+			"description": "Persist approved pattern/action counts across restarts"
+		},
+		"SELF_IMPROVING_CODE_INDEX": {
+			"name": "Code Index Integration",
+			"description": "Use vector search for pattern dedup, retrieval, and scoring"
+		},
 		"CUSTOM_TOOLS": {
 			"name": "Enable custom tools",
 			"description": "When enabled, Zoo can load and use custom TypeScript/JavaScript tools from your project's .roo/tools directory or ~/.roo/tools for global tools. Note: these tools will automatically be auto-approved.",

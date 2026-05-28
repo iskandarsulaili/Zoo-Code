@@ -67,6 +67,11 @@ export const ExperimentalSettings = ({
 	const reviewTeamEnabled = experiments[EXPERIMENT_IDS.SELF_IMPROVING_REVIEW_TEAM] ?? false
 	const fullTrustEnabled = experiments[EXPERIMENT_IDS.SELF_IMPROVING_FULL_TRUST] ?? false
 	const questionEvaluationEnabled = experiments[EXPERIMENT_IDS.SELF_IMPROVING_QUESTION_EVALUATION] ?? false
+	const promptQualityEnabled = experiments[EXPERIMENT_IDS.SELF_IMPROVING_PROMPT_QUALITY] ?? false
+	const toolPreferenceEnabled = experiments[EXPERIMENT_IDS.SELF_IMPROVING_TOOL_PREFERENCE] ?? false
+	const skillMergeEnabled = experiments[EXPERIMENT_IDS.SELF_IMPROVING_SKILL_MERGE] ?? false
+	const persistCountsEnabled = experiments[EXPERIMENT_IDS.SELF_IMPROVING_PERSIST_COUNTS] ?? false
+	const codeIndexEnabled = experiments[EXPERIMENT_IDS.SELF_IMPROVING_CODE_INDEX] ?? false
 	const currentMemoryBackend = memoryBackend ?? "builtin"
 	const currentSelfImprovingScope = selfImprovingScope ?? "global"
 	const currentAutoSkillsScope = selfImprovingAutoSkillsScope ?? "workspace"
@@ -84,7 +89,12 @@ export const ExperimentalSettings = ({
 							key !== "SELF_IMPROVING_AUTO_MODE" &&
 							key !== "SELF_IMPROVING_REVIEW_TEAM" &&
 							key !== "SELF_IMPROVING_FULL_TRUST" &&
-							key !== "SELF_IMPROVING_QUESTION_EVALUATION",
+							key !== "SELF_IMPROVING_QUESTION_EVALUATION" &&
+							key !== "SELF_IMPROVING_PROMPT_QUALITY" &&
+							key !== "SELF_IMPROVING_TOOL_PREFERENCE" &&
+							key !== "SELF_IMPROVING_SKILL_MERGE" &&
+							key !== "SELF_IMPROVING_PERSIST_COUNTS" &&
+							key !== "SELF_IMPROVING_CODE_INDEX",
 					)
 					.map((config) => {
 						const experimentKey = config[0]
@@ -341,6 +351,61 @@ export const ExperimentalSettings = ({
 														)
 													}
 													checkboxTestId="experimental-self-improving-question-evaluation-checkbox"
+												/>
+												<ExperimentalFeature
+													experimentKey="SELF_IMPROVING_PROMPT_QUALITY"
+													enabled={promptQualityEnabled}
+													onChange={(enabled) =>
+														setExperimentEnabled(
+															EXPERIMENT_IDS.SELF_IMPROVING_PROMPT_QUALITY,
+															enabled,
+														)
+													}
+													checkboxTestId="experimental-self-improving-prompt-quality-checkbox"
+												/>
+												<ExperimentalFeature
+													experimentKey="SELF_IMPROVING_TOOL_PREFERENCE"
+													enabled={toolPreferenceEnabled}
+													onChange={(enabled) =>
+														setExperimentEnabled(
+															EXPERIMENT_IDS.SELF_IMPROVING_TOOL_PREFERENCE,
+															enabled,
+														)
+													}
+													checkboxTestId="experimental-self-improving-tool-preference-checkbox"
+												/>
+												<ExperimentalFeature
+													experimentKey="SELF_IMPROVING_SKILL_MERGE"
+													enabled={skillMergeEnabled}
+													onChange={(enabled) =>
+														setExperimentEnabled(
+															EXPERIMENT_IDS.SELF_IMPROVING_SKILL_MERGE,
+															enabled,
+														)
+													}
+													checkboxTestId="experimental-self-improving-skill-merge-checkbox"
+												/>
+												<ExperimentalFeature
+													experimentKey="SELF_IMPROVING_PERSIST_COUNTS"
+													enabled={persistCountsEnabled}
+													onChange={(enabled) =>
+														setExperimentEnabled(
+															EXPERIMENT_IDS.SELF_IMPROVING_PERSIST_COUNTS,
+															enabled,
+														)
+													}
+													checkboxTestId="experimental-self-improving-persist-counts-checkbox"
+												/>
+												<ExperimentalFeature
+													experimentKey="SELF_IMPROVING_CODE_INDEX"
+													enabled={codeIndexEnabled}
+													onChange={(enabled) =>
+														setExperimentEnabled(
+															EXPERIMENT_IDS.SELF_IMPROVING_CODE_INDEX,
+															enabled,
+														)
+													}
+													checkboxTestId="experimental-self-improving-code-index-checkbox"
 												/>
 												<SelfImprovingStatus />
 											</div>

@@ -17,6 +17,11 @@ export const experimentIds = [
 	"selfImprovingReviewTeam",
 	"selfImprovingFullTrust",
 	"selfImprovingQuestionEvaluation",
+	"selfImprovingPromptQuality",
+	"selfImprovingToolPreference",
+	"selfImprovingSkillMerge",
+	"selfImprovingPersistCounts",
+	"selfImprovingCodeIndex",
 ] as const
 
 export const experimentIdsSchema = z.enum(experimentIds)
@@ -38,6 +43,11 @@ export const experimentsSchema = z.object({
 	selfImprovingReviewTeam: z.boolean().optional(),
 	selfImprovingFullTrust: z.boolean().optional(),
 	selfImprovingQuestionEvaluation: z.boolean().optional(),
+	selfImprovingPromptQuality: z.boolean().optional(),
+	selfImprovingToolPreference: z.boolean().optional(),
+	selfImprovingSkillMerge: z.boolean().optional(),
+	selfImprovingPersistCounts: z.boolean().optional(),
+	selfImprovingCodeIndex: z.boolean().optional(),
 })
 
 export type Experiments = z.infer<typeof experimentsSchema>

@@ -38,6 +38,7 @@ import type { ReviewTeamConfig } from "./ReviewTeamService"
 import { QuestionEvaluatorService } from "./QuestionEvaluatorService"
 import { ResilienceService } from "./ResilienceService"
 import { ToolErrorHealer } from "./ToolErrorHealer"
+import type { CodeIndexManager } from "../code-index/manager"
 
 const SELF_IMPROVING_EXPERIMENT_ID = "selfImproving"
 const REVIEW_CHECK_INTERVAL_MS = 60_000
@@ -78,6 +79,7 @@ export class SelfImprovingManager {
 	public questionEvaluator: QuestionEvaluatorService
 	public resilienceService: ResilienceService
 	public toolErrorHealer: ToolErrorHealer
+	private _codeIndexManager: CodeIndexManager | undefined
 
 	private runtime: Runtime | undefined
 	private started = false
@@ -113,6 +115,8 @@ export class SelfImprovingManager {
 		this.modeFactory = new ModeFactoryService(this.logger)
 		this.reviewTeam = new ReviewTeamService(this.logger, {
 			enabled: this.getExperiments()?.selfImprovingReviewTeam ?? true,
+			storageBasePath: this.storageBasePath,
+			getExperiments: () => this.getExperiments(),
 		})
 		this.questionEvaluator = new QuestionEvaluatorService(this.logger, {
 			enabled: this.getExperiments()?.selfImprovingQuestionEvaluation ?? true,
@@ -138,6 +142,32 @@ export class SelfImprovingManager {
 			this.resilienceService,
 		)
 		this.autoModeOrchestrator.setModeFactory(this.modeFactory)
+	}
+
+	/**
+	 * Set the CodeIndexManager instance for vector-search integration.
+	 * Passes the manager to all child services that need it.
+	 * Gated behind selfImprovingCodeIndex experiment flag.
+	 */
+	setCodeIndexManager(manager: CodeIndexManager | undefined): void {
+		this._codeIndexManager = manager
+
+		const experiments = this.getExperiments()
+		if (experiments?.selfImprovingCodeIndex === false) {
+			return
+		}
+
+		// Wire to all child services
+		if (this.runtime) {
+			this.runtime.store.setCodeIndexManager(manager)
+			this.runtime.patternAnalyzer.setCodeIndexManager(manager)
+		}
+		this.reviewTeam.setCodeIndexManager(manager)
+		this.questionEvaluator.setCodeIndexManager(manager)
+
+		this.logger.appendLine(
+			`[SelfImprovingManager] CodeIndexManager ${manager ? "wired" : "unwired"} to child services`,
+		)
 	}
 
 	setCustomModesManager(manager: any): void {
@@ -219,6 +249,7 @@ export class SelfImprovingManager {
 			await this.transcriptRecall.initialize()
 			await this.curatorService.initialize()
 			await this.insightsEngine.initialize()
+			await this.reviewTeam.initialize()
 			this.started = true
 			this.startTimers(runtime.store)
 
@@ -413,7 +444,7 @@ export class SelfImprovingManager {
 			}
 
 			const existingPatterns = [...this.runtime.store.getPatterns()] as LearnedPattern[]
-			const newPatterns = this.runtime.patternAnalyzer.analyze(events, existingPatterns)
+			const newPatterns = await this.runtime.patternAnalyzer.analyze(events, existingPatterns)
 			for (const pattern of newPatterns) {
 				this.runtime.store.addPattern(pattern)
 			}
@@ -698,10 +729,25 @@ export class SelfImprovingManager {
 
 	private getOrCreateRuntime(): Runtime {
 		if (!this.runtime) {
+			const experiments = this.getExperiments()
+			const store = new LearningStore(this.storageBasePath, this.logger)
+			const patternAnalyzer = new PatternAnalyzer({
+				getExperiments: () => this.getExperiments(),
+			})
+
+			// Wire CodeIndexManager to runtime services if experiment is enabled
+			if (experiments?.selfImprovingCodeIndex !== false && this._codeIndexManager) {
+				store.setCodeIndexManager(this._codeIndexManager)
+				store.setExperimentsAccessor(() => this.getExperiments())
+				patternAnalyzer.setCodeIndexManager(this._codeIndexManager)
+			}
+
 			this.runtime = {
-				store: new LearningStore(this.storageBasePath, this.logger),
-				feedbackCollector: new FeedbackCollector(),
-				patternAnalyzer: new PatternAnalyzer(),
+				store,
+				feedbackCollector: new FeedbackCollector({
+					getExperiments: () => this.getExperiments(),
+				}),
+				patternAnalyzer,
 				improvementApplier: new ImprovementApplier({
 					getSkillNames: () => this.skillsManager?.getSkillNames() ?? [],
 					getSkillProvenance: (name: string) => this.resolveSkillProvenance(name),
@@ -715,6 +761,7 @@ export class SelfImprovingManager {
 							this.runtime?.store.getConfig().enabled,
 						),
 					getAutoSkillsScope: () => this.resolveAutoSkillsScope(),
+					getExperiments: () => this.getExperiments(),
 				}),
 				codeIndexAdapter: new CodeIndexAdapter(this.logger, this.getCodeIndexInfo),
 			}

@@ -1,4 +1,5 @@
-import type { Logger } from "./types"
+import type { Logger, Experiments } from "./types"
+import type { CodeIndexManager } from "../code-index/manager"
 
 export interface TrustConfig {
 	enabled: boolean
@@ -30,10 +31,26 @@ export class TrustService {
 	private consecutiveActions: number = 0
 	/** Tracks whether the current task has already completed, preventing auto-approval of attempt_completion */
 	public taskCompleted: boolean = false
+	private codeIndexManager: CodeIndexManager | undefined
+	private getExperiments: (() => Experiments | undefined) | undefined
 
 	constructor(logger: Logger, config?: Partial<TrustConfig>) {
 		this.logger = logger
 		this.config = { ...DEFAULT_CONFIG, ...config }
+	}
+
+	/**
+	 * Set the CodeIndexManager instance for vector-search-based pattern retrieval.
+	 */
+	setCodeIndexManager(manager: CodeIndexManager | undefined): void {
+		this.codeIndexManager = manager
+	}
+
+	/**
+	 * Set the experiments accessor for feature gating.
+	 */
+	setExperimentsAccessor(getExperiments: () => Experiments | undefined): void {
+		this.getExperiments = getExperiments
 	}
 
 	getConfig(): TrustConfig {
@@ -168,6 +185,45 @@ export class TrustService {
 			}
 			return filePath === pattern || filePath.startsWith(pattern + "/")
 		})
+	}
+
+	/**
+	 * Search for similar patterns using vector search.
+	 * Uses CodeIndexManager to find past successful/failed patterns similar to current context.
+	 * Informs trust scoring decisions.
+	 * Gated behind selfImprovingCodeIndex experiment flag.
+	 */
+	async searchSimilarPatterns(
+		context: string,
+	): Promise<Array<{ summary: string; score: number; filePath?: string }>> {
+		const experiments = this.getExperiments?.()
+		if (experiments?.selfImprovingCodeIndex === false) {
+			return []
+		}
+
+		if (!this.codeIndexManager) {
+			return []
+		}
+
+		try {
+			const results = await this.codeIndexManager.searchIndex(context)
+			if (!results || results.length === 0) {
+				return []
+			}
+
+			return results
+				.filter((r) => r.payload?.codeChunk)
+				.map((r) => ({
+					summary: r.payload?.codeChunk?.slice(0, 200) ?? "",
+					score: r.score,
+					filePath: r.payload?.filePath,
+				}))
+		} catch (error) {
+			this.logger.appendLine(
+				`[TrustService] searchSimilarPatterns error: ${error instanceof Error ? error.message : String(error)}`,
+			)
+			return []
+		}
 	}
 
 	getStatus(): Record<string, unknown> {

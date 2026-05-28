@@ -35,7 +35,7 @@ function createPattern(overrides: Partial<LearnedPattern>): LearnedPattern {
 }
 
 describe("PatternAnalyzer", () => {
-	it("does not merge tool-combination patterns by summary substring alone", () => {
+	it("does not merge tool-combination patterns by summary substring alone", async () => {
 		const analyzer = new PatternAnalyzer()
 		const existingPatterns = [createPattern({})]
 		const events = [
@@ -44,7 +44,7 @@ describe("PatternAnalyzer", () => {
 			createEvent("event-3", "TASK_SUCCESS", ["search"]),
 		]
 
-		const patterns = analyzer.analyze(events, existingPatterns)
+		const patterns = await analyzer.analyze(events, existingPatterns)
 		const toolPatterns = patterns.filter((pattern) => pattern.patternType === "tool")
 
 		expect(toolPatterns).toHaveLength(1)
@@ -58,7 +58,7 @@ describe("PatternAnalyzer", () => {
 		})
 	})
 
-	it("preserves cumulative frequency for existing tool-preference patterns", () => {
+	it("preserves cumulative frequency for existing tool-preference patterns", async () => {
 		const analyzer = new PatternAnalyzer()
 		const existingPatterns = [
 			createPattern({
@@ -78,7 +78,7 @@ describe("PatternAnalyzer", () => {
 			createEvent("event-3", "TASK_FAILURE", ["terminal"]),
 		]
 
-		const patterns = analyzer.analyze(events, existingPatterns)
+		const patterns = await analyzer.analyze(events, existingPatterns)
 		const promptPatterns = patterns.filter((pattern) => pattern.patternType === "prompt")
 
 		expect(promptPatterns).toHaveLength(1)

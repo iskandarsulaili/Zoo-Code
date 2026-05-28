@@ -1,5 +1,10 @@
-import type { LearnedPattern, ImprovementAction } from "./types"
+import * as fs from "fs/promises"
+import * as path from "path"
+
+import { safeWriteJson } from "../../utils/safeWriteJson"
+import type { Experiments, LearnedPattern, ImprovementAction } from "./types"
 import type { Logger } from "./types"
+import type { CodeIndexManager } from "../code-index/manager"
 
 export interface ReviewTeamConfig {
 	enabled: boolean
@@ -9,6 +14,8 @@ export interface ReviewTeamConfig {
 	deciderThreshold: number // default 0.6 — minimum weighted score to pass
 	requireUnanimous: boolean // default false — if true, all must approve
 	minConfidenceForReview: number // default 0.2 — skip review for very low confidence
+	storageBasePath?: string // path for persisting counts
+	getExperiments?: () => Experiments | undefined
 }
 
 export interface ReviewVerdict {
@@ -38,15 +45,111 @@ const DEFAULT_CONFIG: ReviewTeamConfig = {
 	minConfidenceForReview: 0.2,
 }
 
+interface PersistedCounts {
+	approvedPatternCount: number
+	approvedActionCount: number
+}
+
+const COUNTS_FILE = "review-team-counts.json"
+
 export class ReviewTeamService {
 	private logger: Logger
 	private config: ReviewTeamConfig
 	private approvedPatternCount: number = 0
 	private approvedActionCount: number = 0
+	private initialized = false
+	private initPromise: Promise<void> | null = null
+	private codeIndexManager: CodeIndexManager | undefined
 
 	constructor(logger: Logger, config?: Partial<ReviewTeamConfig>) {
 		this.logger = logger
 		this.config = { ...DEFAULT_CONFIG, ...config }
+	}
+
+	/**
+	 * Set the CodeIndexManager instance for vector-search-based pattern evidence lookup.
+	 */
+	setCodeIndexManager(manager: CodeIndexManager | undefined): void {
+		this.codeIndexManager = manager
+	}
+
+	/**
+	 * Initialize the service — load persisted counts if storage is configured
+	 * and the SELF_IMPROVING_PERSIST_COUNTS experiment is enabled.
+	 */
+	async initialize(): Promise<void> {
+		if (this.initialized) {
+			return
+		}
+
+		if (!this.initPromise) {
+			this.initPromise = this.doInitialize()
+		}
+
+		await this.initPromise
+	}
+
+	private async doInitialize(): Promise<void> {
+		try {
+			const experiments = this.config.getExperiments?.()
+			if (experiments?.selfImprovingPersistCounts === false) {
+				this.initialized = true
+				return
+			}
+
+			if (!this.config.storageBasePath) {
+				this.initialized = true
+				return
+			}
+
+			const countsPath = path.join(this.config.storageBasePath, COUNTS_FILE)
+			try {
+				const data = await fs.readFile(countsPath, "utf-8")
+				const parsed = JSON.parse(data) as PersistedCounts
+				this.approvedPatternCount = parsed.approvedPatternCount ?? 0
+				this.approvedActionCount = parsed.approvedActionCount ?? 0
+				this.logger.appendLine(
+					`[ReviewTeamService] Loaded counts: ${this.approvedPatternCount} patterns, ${this.approvedActionCount} actions`,
+				)
+			} catch {
+				// File doesn't exist yet — start from zero
+				this.logger.appendLine("[ReviewTeamService] No persisted counts found, starting fresh")
+			}
+		} catch (error) {
+			this.logger.appendLine(
+				`[ReviewTeamService] Failed to load counts: ${error instanceof Error ? error.message : String(error)}`,
+			)
+		} finally {
+			this.initialized = true
+			this.initPromise = null
+		}
+	}
+
+	/**
+	 * Persist current counts to disk if storage is configured.
+	 */
+	private async persistCounts(): Promise<void> {
+		const experiments = this.config.getExperiments?.()
+		if (experiments?.selfImprovingPersistCounts === false) {
+			return
+		}
+
+		if (!this.config.storageBasePath) {
+			return
+		}
+
+		try {
+			const countsPath = path.join(this.config.storageBasePath, COUNTS_FILE)
+			const data: PersistedCounts = {
+				approvedPatternCount: this.approvedPatternCount,
+				approvedActionCount: this.approvedActionCount,
+			}
+			await safeWriteJson(countsPath, data)
+		} catch (error) {
+			this.logger.appendLine(
+				`[ReviewTeamService] Failed to persist counts: ${error instanceof Error ? error.message : String(error)}`,
+			)
+		}
 	}
 
 	getApprovedPatternCount(): number {
@@ -55,6 +158,7 @@ export class ReviewTeamService {
 
 	setApprovedPatternCount(count: number): void {
 		this.approvedPatternCount = count
+		this.persistCounts()
 	}
 
 	getApprovedActionCount(): number {
@@ -63,6 +167,7 @@ export class ReviewTeamService {
 
 	setApprovedActionCount(count: number): void {
 		this.approvedActionCount = count
+		this.persistCounts()
 	}
 
 	getConfig(): ReviewTeamConfig {
@@ -230,6 +335,49 @@ export class ReviewTeamService {
 		)
 
 		return { approved, rejected, verdicts }
+	}
+
+	/**
+	 * Search for similar approved patterns using vector search.
+	 * Finds evidence of "has this pattern worked before?" to inform persona scores.
+	 * Gated behind selfImprovingCodeIndex experiment flag.
+	 */
+	async searchSimilarApprovedPatterns(pattern: LearnedPattern): Promise<Array<{ summary: string; score: number }>> {
+		const experiments = this.config.getExperiments?.()
+		if (experiments?.selfImprovingCodeIndex === false) {
+			return []
+		}
+
+		if (!this.codeIndexManager) {
+			return []
+		}
+
+		try {
+			const query = [
+				pattern.summary,
+				...(pattern.context?.toolNames ?? []),
+				...(pattern.context?.errorKeys ?? []),
+			]
+				.filter(Boolean)
+				.join(" ")
+
+			const results = await this.codeIndexManager.searchIndex(query)
+			if (!results || results.length === 0) {
+				return []
+			}
+
+			return results
+				.filter((r) => r.payload?.codeChunk)
+				.map((r) => ({
+					summary: r.payload?.codeChunk?.slice(0, 200) ?? "",
+					score: r.score,
+				}))
+		} catch (error) {
+			this.logger.appendLine(
+				`[ReviewTeamService] searchSimilarApprovedPatterns error: ${error instanceof Error ? error.message : String(error)}`,
+			)
+			return []
+		}
 	}
 
 	// ===== INNOVATOR =====

@@ -10,6 +10,7 @@ export const feedbackSignalSchema = z.enum([
 	"PATTERN_REPEAT",
 	"CODE_INDEX_HIT",
 	"PROMPT_QUALITY",
+	"TOOL_PREFERENCE",
 ])
 
 export type FeedbackSignal = z.infer<typeof feedbackSignalSchema>
@@ -117,6 +118,7 @@ export const learnedPatternSchema = z.object({
 		errorKeys: z.array(z.string()).optional(),
 		modes: z.array(z.string()).optional(),
 		workspacePaths: z.array(z.string()).optional(),
+		promptFingerprint: z.string().optional(),
 	}),
 })
 

@@ -1,6 +1,11 @@
 import crypto from "crypto"
 
-import type { LearnedPattern, LearningEvent } from "./types"
+import type { Experiments, LearnedPattern, LearningEvent } from "./types"
+import type { CodeIndexManager } from "../code-index/manager"
+
+interface PatternAnalyzerOptions {
+	getExperiments?: () => Experiments | undefined
+}
 
 /**
  * PatternAnalyzer - extracts learned patterns from event streams
@@ -10,11 +15,25 @@ import type { LearnedPattern, LearningEvent } from "./types"
  * Adapted from Hermes' symbolic pattern extraction approach.
  */
 export class PatternAnalyzer {
+	private readonly getExperiments: () => Experiments | undefined
+	private codeIndexManager: CodeIndexManager | undefined
+
+	constructor(options: PatternAnalyzerOptions = {}) {
+		this.getExperiments = options.getExperiments ?? (() => undefined)
+	}
+
+	/**
+	 * Set the CodeIndexManager instance for vector-search-based pattern retrieval.
+	 */
+	setCodeIndexManager(manager: CodeIndexManager | undefined): void {
+		this.codeIndexManager = manager
+	}
+
 	/**
 	 * Analyze a batch of events and return new/updated patterns.
 	 * This is the main entry point called during review cycles.
 	 */
-	analyze(events: LearningEvent[], existingPatterns: LearnedPattern[]): LearnedPattern[] {
+	async analyze(events: LearningEvent[], existingPatterns: LearnedPattern[]): Promise<LearnedPattern[]> {
 		const patterns: LearnedPattern[] = []
 		const now = Date.now()
 
@@ -27,8 +46,19 @@ export class PatternAnalyzer {
 		const toolPatterns = this.extractToolPatterns(events, existingPatterns, now)
 		patterns.push(...toolPatterns)
 
-		const codeIndexPatterns = this.extractCodeIndexPatterns(events, existingPatterns, now)
+		const codeIndexPatterns = await this.extractCodeIndexPatterns(events, existingPatterns, now)
 		patterns.push(...codeIndexPatterns)
+
+		const experiments = this.getExperiments()
+		if (experiments?.selfImprovingPromptQuality !== false) {
+			const promptQualityPatterns = this.extractPromptQualityPatterns(events, existingPatterns, now)
+			patterns.push(...promptQualityPatterns)
+		}
+
+		if (experiments?.selfImprovingPromptQuality !== false) {
+			const patternRepeatPatterns = this.extractPatternRepeatPatterns(events, existingPatterns, now)
+			patterns.push(...patternRepeatPatterns)
+		}
 
 		return patterns
 	}
@@ -225,13 +255,23 @@ export class PatternAnalyzer {
 
 	/**
 	 * Extract code index correlation patterns.
+	 * Uses vector search to find patterns related to current event context
+	 * when selfImprovingCodeIndex experiment is enabled.
 	 */
-	private extractCodeIndexPatterns(
+	private async extractCodeIndexPatterns(
 		events: LearningEvent[],
 		existingPatterns: LearnedPattern[],
 		now: number,
-	): LearnedPattern[] {
+	): Promise<LearnedPattern[]> {
+		const experiments = this.getExperiments()
 		const codeIndexEvents = events.filter((event) => event.signal === "CODE_INDEX_HIT")
+
+		// When code index integration is enabled, use vector search for richer patterns
+		if (experiments?.selfImprovingCodeIndex !== false && this.codeIndexManager) {
+			return this.extractCodeIndexPatternsWithVectorSearch(events, existingPatterns, now, codeIndexEvents)
+		}
+
+		// Fallback: original heuristic-based extraction
 		if (codeIndexEvents.length < 3) {
 			return []
 		}
@@ -270,9 +310,225 @@ export class PatternAnalyzer {
 				firstSeenAt: now,
 				lastSeenAt: now,
 				sourceSignals: ["CODE_INDEX_HIT"],
-				context: {},
+				context: {
+					toolNames: [],
+					errorKeys: [],
+				},
 			},
 		]
+	}
+
+	/**
+	 * Vector-search-enhanced code index pattern extraction.
+	 * Searches for patterns related to current event context via CodeIndexManager.
+	 */
+	private async extractCodeIndexPatternsWithVectorSearch(
+		events: LearningEvent[],
+		existingPatterns: LearnedPattern[],
+		now: number,
+		codeIndexEvents: LearningEvent[],
+	): Promise<LearnedPattern[]> {
+		const patterns: LearnedPattern[] = []
+
+		// Build search queries from event context
+		const searchQueries: string[] = []
+		for (const event of events) {
+			const toolContext = event.context.toolNames?.join(" ") ?? ""
+			const errorContext = event.context.errorKey ?? ""
+			const query = [toolContext, errorContext, event.outcome.summary ?? ""].filter(Boolean).join(" ")
+			if (query.length > 5) {
+				searchQueries.push(query)
+			}
+		}
+
+		// Deduplicate queries (take up to 3 most relevant)
+		const uniqueQueries = [...new Set(searchQueries)].slice(0, 3)
+
+		for (const query of uniqueQueries) {
+			try {
+				const results = await this.codeIndexManager!.searchIndex(query)
+				if (!results || results.length === 0) {
+					continue
+				}
+
+				for (const result of results) {
+					const payload = result.payload
+					if (!payload?.codeChunk) {
+						continue
+					}
+
+					const filePath = payload.filePath ?? "unknown"
+					const startLine = payload.startLine ?? 0
+					const endLine = payload.endLine ?? 0
+					const summary = `[CodeIndex:${filePath}:${startLine}-${endLine}] ${payload.codeChunk.slice(0, 150)}`
+
+					const existing = existingPatterns.find(
+						(p) => p.patternType === "code-index" && p.summary === summary,
+					)
+
+					if (existing) {
+						patterns.push({
+							...existing,
+							frequency: existing.frequency + 1,
+							lastSeenAt: now,
+							confidenceScore: Math.min(1, existing.confidenceScore + result.score * 0.05),
+						})
+					} else {
+						patterns.push({
+							id: crypto.randomUUID(),
+							patternType: "code-index",
+							state: "active",
+							summary,
+							confidenceScore: Math.min(0.5, result.score * 0.5),
+							frequency: 1,
+							successRate: 0.5,
+							firstSeenAt: now,
+							lastSeenAt: now,
+							sourceSignals: ["CODE_INDEX_HIT"],
+							context: {
+								toolNames: [],
+								errorKeys: [],
+							},
+						})
+					}
+				}
+			} catch (error) {
+				// Log and continue with other queries
+				console.error(`[PatternAnalyzer] Vector search error for query "${query}":`, error)
+			}
+		}
+
+		return patterns
+	}
+
+	/**
+	 * Extract patterns from PROMPT_QUALITY events.
+	 * Identifies prompt fingerprints that consistently yield high/low quality scores.
+	 */
+	private extractPromptQualityPatterns(
+		events: LearningEvent[],
+		existingPatterns: LearnedPattern[],
+		now: number,
+	): LearnedPattern[] {
+		const patterns: LearnedPattern[] = []
+		const qualityEvents = events.filter((event) => event.signal === "PROMPT_QUALITY")
+
+		if (qualityEvents.length < 2) {
+			return patterns
+		}
+
+		const byFingerprint = new Map<string, { total: number; count: number }>()
+		for (const event of qualityEvents) {
+			const fp = event.context.promptFingerprint ?? "unknown"
+			const bucket = byFingerprint.get(fp) ?? { total: 0, count: 0 }
+			bucket.total += event.outcome.confidenceDelta ?? 0
+			bucket.count++
+			byFingerprint.set(fp, bucket)
+		}
+
+		for (const [fingerprint, stats] of byFingerprint) {
+			if (stats.count < 2) {
+				continue
+			}
+
+			const avgDelta = stats.total / stats.count
+			const isPositive = avgDelta > 0
+			const existing = existingPatterns.find(
+				(pattern) => pattern.patternType === "prompt" && pattern.context.promptFingerprint === fingerprint,
+			)
+
+			if (existing) {
+				patterns.push({
+					...existing,
+					frequency: existing.frequency + stats.count,
+					lastSeenAt: now,
+					confidenceScore: Math.min(1, existing.confidenceScore + Math.abs(avgDelta) * 0.1),
+					successRate: isPositive
+						? Math.min(1, existing.successRate + 0.02)
+						: Math.max(0, existing.successRate - 0.02),
+				})
+			} else if (stats.count >= 3) {
+				patterns.push({
+					id: crypto.randomUUID(),
+					patternType: "prompt",
+					state: "active",
+					summary: isPositive
+						? `Prompt fingerprint ${fingerprint.slice(0, 16)} yields quality improvements`
+						: `Prompt fingerprint ${fingerprint.slice(0, 16)} degrades quality`,
+					confidenceScore: Math.min(0.5, Math.abs(avgDelta) * 2),
+					frequency: stats.count,
+					successRate: isPositive ? 0.6 : 0.3,
+					firstSeenAt: now,
+					lastSeenAt: now,
+					sourceSignals: ["PROMPT_QUALITY"],
+					context: {
+						promptFingerprint: fingerprint,
+					},
+				})
+			}
+		}
+
+		return patterns
+	}
+
+	/**
+	 * Extract patterns from PATTERN_REPEAT events.
+	 * Identifies patterns that are being reused successfully.
+	 */
+	private extractPatternRepeatPatterns(
+		events: LearningEvent[],
+		existingPatterns: LearnedPattern[],
+		now: number,
+	): LearnedPattern[] {
+		const patterns: LearnedPattern[] = []
+		const repeatEvents = events.filter((event) => event.signal === "PATTERN_REPEAT")
+
+		if (repeatEvents.length < 2) {
+			return patterns
+		}
+
+		const byPatternId = new Map<string, LearningEvent[]>()
+		for (const event of repeatEvents) {
+			const patternId = event.context.promptFingerprint ?? "unknown"
+			const bucket = byPatternId.get(patternId) ?? []
+			bucket.push(event)
+			byPatternId.set(patternId, bucket)
+		}
+
+		for (const [patternId, patternEvents] of byPatternId) {
+			const frequency = patternEvents.length
+			const existing = existingPatterns.find(
+				(pattern) => pattern.id === patternId || pattern.context.promptFingerprint === patternId,
+			)
+
+			if (existing) {
+				patterns.push({
+					...existing,
+					frequency: existing.frequency + frequency,
+					lastSeenAt: now,
+					confidenceScore: Math.min(1, existing.confidenceScore + frequency * 0.03),
+					successRate: Math.min(1, existing.successRate + frequency * 0.01),
+				})
+			} else if (frequency >= 3) {
+				patterns.push({
+					id: crypto.randomUUID(),
+					patternType: "prompt",
+					state: "active",
+					summary: `Pattern ${patternId.slice(0, 16)} reused ${frequency} times — reinforcing`,
+					confidenceScore: Math.min(0.4, frequency * 0.05),
+					frequency,
+					successRate: 0.5,
+					firstSeenAt: now,
+					lastSeenAt: now,
+					sourceSignals: ["PATTERN_REPEAT"],
+					context: {
+						promptFingerprint: patternId,
+					},
+				})
+			}
+		}
+
+		return patterns
 	}
 
 	/**

@@ -1,6 +1,10 @@
 import crypto from "crypto"
 
-import type { CodeIndexInfo, FeedbackSignal, LearningEvent, TaskEventInfo } from "./types"
+import type { CodeIndexInfo, Experiments, FeedbackSignal, LearningEvent, TaskEventInfo } from "./types"
+
+interface FeedbackCollectorOptions {
+	getExperiments?: () => Experiments | undefined
+}
 
 /**
  * FeedbackCollector - normalizes task/user/tool/code-index signals
@@ -11,6 +15,11 @@ import type { CodeIndexInfo, FeedbackSignal, LearningEvent, TaskEventInfo } from
  * persistence and lifecycle.
  */
 export class FeedbackCollector {
+	private readonly getExperiments: () => Experiments | undefined
+
+	constructor(options: FeedbackCollectorOptions = {}) {
+		this.getExperiments = options.getExperiments ?? (() => undefined)
+	}
 	/**
 	 * Create a learning event from a task completion signal.
 	 */
@@ -116,6 +125,31 @@ export class FeedbackCollector {
 			},
 			outcome: {
 				confidenceDelta: quality > 0.5 ? 0.01 : -0.01,
+			},
+		}
+	}
+
+	/**
+	 * Create a learning event from a tool preference signal.
+	 * Gate behind SELF_IMPROVING_TOOL_PREFERENCE experiment flag.
+	 */
+	createToolPreferenceEvent(toolName: string, successRate: number, taskId?: string): LearningEvent | undefined {
+		const experiments = this.getExperiments()
+		if (experiments?.selfImprovingToolPreference === false) {
+			return undefined
+		}
+
+		return {
+			id: crypto.randomUUID(),
+			signal: "TOOL_PREFERENCE",
+			timestamp: Date.now(),
+			taskId,
+			context: {
+				toolNames: [toolName],
+			},
+			outcome: {
+				success: successRate > 0.5,
+				confidenceDelta: successRate > 0.5 ? 0.02 : -0.02,
 			},
 		}
 	}
