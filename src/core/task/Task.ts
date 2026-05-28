@@ -1258,9 +1258,16 @@ export class Task extends EventEmitter<TaskEvents> implements TaskLike {
 							console.error(
 								`[Task] Question evaluated: chose #${evaluation.selectedIndex + 1} via ${evaluation.evaluatedBy}: "${evaluation.selectedText.substring(0, 60)}..."`,
 							)
-							this.handleWebviewAskResponse("messageResponse", evaluation.selectedText)
-							this.autoApprovalTimeoutRef = undefined
-							return
+							// If evaluation returned empty result, fall back to default first choice
+							// This prevents empty responses when Full Trust + Auto-approve Question are enabled
+							if (evaluation.selectedText && evaluation.selectedText.trim().length > 0) {
+								this.handleWebviewAskResponse("messageResponse", evaluation.selectedText)
+								this.autoApprovalTimeoutRef = undefined
+								return
+							}
+							console.error(
+								`[Task] Question evaluation returned empty result, falling back to first choice`,
+							)
 						}
 					} catch (error) {
 						console.error(`[Task] Question evaluation failed, falling back to first choice: ${error}`)
@@ -1794,10 +1801,14 @@ export class Task extends EventEmitter<TaskEvents> implements TaskLike {
 			} without value for required parameter '${paramName}'. Retrying...${fixSuffix}`,
 		)
 
-		const baseError = formatResponse.missingToolParameterError(paramName)
+		// Build error message with healing suggestion prominently included
+		const baseError = formatResponse.missingToolParameterError(paramName, toolName)
 		if (fix) {
 			const fixHint = fix.autoCorrectable ? `\n\n[Fix suggestion: ${fix.fix}]` : `\n\n[Hint: ${fix.fix}]`
-			return formatResponse.toolError(baseError + fixHint)
+			// Also try getHealingSuggestion for additional context from error message parsing
+			const healingSuggestion = this.toolErrorHealer?.getHealingSuggestion(toolName, baseError)
+			const healingSuffix = healingSuggestion ? `\n\n${healingSuggestion}` : ""
+			return formatResponse.toolError(baseError + fixHint + healingSuffix)
 		}
 
 		return formatResponse.toolError(baseError)

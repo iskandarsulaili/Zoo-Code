@@ -51,8 +51,11 @@ This fork adds **~10,500 lines** of self-improving infrastructure across **45 fi
 ## Statistic
 
 Projects generated: Countless
+
 Monthly cost: LLM & electric bills
+
 Non-refundable cost: My soul
+
 Revenue generated so far: 0 and still counting zero
 
 ## Special Messages

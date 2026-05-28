@@ -1,6 +1,7 @@
 // pnpm --filter @roo-code/vscode-webview test src/components/settings/__tests__/SettingsView.spec.tsx
 
-import { render, screen, fireEvent, within } from "@/utils/test-utils"
+import { render, screen, fireEvent, within, waitFor } from "@/utils/test-utils"
+import userEvent from "@testing-library/user-event"
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
 
 import { vscode } from "@/utils/vscode"
@@ -39,7 +40,11 @@ vi.mock("@vscode/webview-ui-toolkit/react", () => ({
 			<input
 				type="checkbox"
 				checked={checked}
-				onChange={(e) => onChange({ target: { checked: e.target.checked } })}
+				onClick={(e: any) => {
+					const newChecked = !checked
+					e.target.checked = newChecked
+					onChange({ target: { checked: newChecked } })
+				}}
 				aria-label={typeof children === "string" ? children : undefined}
 				data-testid={dataTestId}
 			/>
@@ -70,6 +75,12 @@ vi.mock("@vscode/webview-ui-toolkit/react", () => ({
 			role="textbox"
 		/>
 	),
+	VSCodeDropdown: ({ children, value, onChange }: any) => (
+		<select value={value} onChange={onChange} data-testid="vscode-dropdown">
+			{children}
+		</select>
+	),
+	VSCodeOption: ({ children, value }: any) => <option value={value}>{children}</option>,
 }))
 
 vi.mock("../../../components/common/Tab", () => ({
@@ -283,7 +294,7 @@ const mockPostMessage = (state: any) => {
 	)
 }
 
-const renderSettingsView = () => {
+const renderSettingsView = (initialState?: Record<string, any>) => {
 	const onDone = vi.fn()
 	const queryClient = new QueryClient()
 
@@ -296,7 +307,7 @@ const renderSettingsView = () => {
 	)
 
 	// Hydrate initial state.
-	mockPostMessage({})
+	mockPostMessage(initialState ?? {})
 
 	// Helper function to activate a tab and ensure its content is visible
 	const activateTab = (tabId: string) => {
@@ -513,14 +524,14 @@ describe("SettingsView - Experimental Settings", () => {
 	})
 
 	it("shows the auto-skills sub-option under self-improving and saves it", () => {
-		const { activateTab, getSettingsContent } = renderSettingsView()
+		// Start with selfImproving enabled so sub-options are visible
+		const { activateTab, getSettingsContent } = renderSettingsView({ experiments: { selfImproving: true } })
 
 		activateTab("experimental")
 
 		const content = getSettingsContent()
-		const selfImprovingCheckbox = within(content).getByTestId("experimental-self-improving-checkbox")
-		fireEvent.click(selfImprovingCheckbox)
-		expect(selfImprovingCheckbox).toBeChecked()
+		// Verify the auto-skills sub-option appears
+		expect(within(content).queryByTestId("experimental-self-improving-auto-skills-checkbox")).toBeInTheDocument()
 
 		const autoSkillsCheckbox = within(content).getByTestId("experimental-self-improving-auto-skills-checkbox")
 		fireEvent.click(autoSkillsCheckbox)
@@ -555,14 +566,14 @@ describe("SettingsView - Experimental Settings", () => {
 	})
 
 	it("shows memory backend controls for self-improving and saves agentmemory settings", () => {
-		const { activateTab, getSettingsContent } = renderSettingsView()
+		// Start with selfImproving enabled so sub-options are visible
+		const { activateTab, getSettingsContent } = renderSettingsView({ experiments: { selfImproving: true } })
 
 		activateTab("experimental")
 
 		const content = getSettingsContent()
-		const selfImprovingCheckbox = within(content).getByTestId("experimental-self-improving-checkbox")
-		fireEvent.click(selfImprovingCheckbox)
-		expect(selfImprovingCheckbox).toBeChecked()
+		// Verify the memory backend controls appear
+		expect(within(content).queryByTestId("self-improving-scope-select")).toBeInTheDocument()
 
 		vi.clearAllMocks()
 

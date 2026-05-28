@@ -78,6 +78,38 @@ export class ToolErrorHealer {
 	}
 
 	/**
+	 * Get a healing suggestion for a tool error message.
+	 * Parses the error message to extract the missing parameter name,
+	 * then looks up the known fix for that tool+parameter combination.
+	 * Returns a human-readable suggestion string or null if no fix known.
+	 */
+	getHealingSuggestion(toolName: string, errorMessage: string): string | null {
+		if (!this.config.enabled) {
+			return null
+		}
+
+		// Try to extract missing parameter name from common error patterns
+		const paramMatch = errorMessage.match(/parameter\s+'([^']+)'/i)
+		const missingParam = paramMatch?.[1]
+
+		if (!missingParam) {
+			return null
+		}
+
+		const requirements = KNOWN_TOOL_REQUIREMENTS[toolName]
+		if (!requirements) {
+			return null
+		}
+
+		const req = requirements.find((r) => r.param === missingParam)
+		if (!req) {
+			return null
+		}
+
+		return `Suggestion: ${req.hint}`
+	}
+
+	/**
 	 * Handle a tool parameter error. Returns a fix suggestion or null.
 	 */
 	handleToolError(toolName: string, missingParam: string): { fix: string; autoCorrectable: boolean } | null {
