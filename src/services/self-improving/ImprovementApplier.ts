@@ -113,6 +113,13 @@ export class ImprovementApplier {
 		}
 	}
 
+	/**
+	 * Alias for buildPromptContext — used by SelfImprovingManager.getPromptContext().
+	 */
+	getPromptContext(patterns: LearnedPattern[], maxEntries: number, revision?: number): PromptContext {
+		return this.buildPromptContext(patterns, maxEntries)
+	}
+
 	private createErrorAvoidanceAction(pattern: LearnedPattern, now: number): ImprovementAction {
 		const errorKeys = pattern.context.errorKeys ?? []
 		const primaryErrorKey = errorKeys.length > 0 ? errorKeys[0] : "unknown"

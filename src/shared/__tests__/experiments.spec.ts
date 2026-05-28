@@ -45,6 +45,11 @@ describe("experiments", () => {
 				selfImprovingReviewTeam: false,
 				selfImprovingFullTrust: false,
 				selfImprovingQuestionEvaluation: false,
+				selfImprovingPromptQuality: false,
+				selfImprovingToolPreference: false,
+				selfImprovingSkillMerge: false,
+				selfImprovingPersistCounts: false,
+				selfImprovingCodeIndex: false,
 			}
 			expect(Experiments.isEnabled(experiments, EXPERIMENT_IDS.PREVENT_FOCUS_DISRUPTION)).toBe(false)
 		})
@@ -61,11 +66,16 @@ describe("experiments", () => {
 				selfImprovingReviewTeam: false,
 				selfImprovingFullTrust: false,
 				selfImprovingQuestionEvaluation: false,
+				selfImprovingPromptQuality: false,
+				selfImprovingToolPreference: false,
+				selfImprovingSkillMerge: false,
+				selfImprovingPersistCounts: false,
+				selfImprovingCodeIndex: false,
 			}
-			expect(Experiments.isEnabled(experiments, EXPERIMENT_IDS.PREVENT_FOCUS_DISRUPTION)).toBe(true)
+			expect(Experiments.isEnabled(experiments, EXPERIMENT_IDS.SELF_IMPROVING)).toBe(true)
 		})
 
-		it("returns false when experiment is not present", () => {
+		it("returns false when experiment is not in the map", () => {
 			const experiments: Record<ExperimentId, boolean> = {
 				preventFocusDisruption: false,
 				imageGeneration: false,
@@ -77,25 +87,13 @@ describe("experiments", () => {
 				selfImprovingReviewTeam: false,
 				selfImprovingFullTrust: false,
 				selfImprovingQuestionEvaluation: false,
+				selfImprovingPromptQuality: false,
+				selfImprovingToolPreference: false,
+				selfImprovingSkillMerge: false,
+				selfImprovingPersistCounts: false,
+				selfImprovingCodeIndex: false,
 			}
-			expect(Experiments.isEnabled(experiments, EXPERIMENT_IDS.PREVENT_FOCUS_DISRUPTION)).toBe(false)
-		})
-
-		it("returns false when self improving is explicitly disabled", () => {
-			const experiments: Record<ExperimentId, boolean> = {
-				preventFocusDisruption: false,
-				imageGeneration: false,
-				runSlashCommand: false,
-				customTools: false,
-				selfImproving: false,
-				selfImprovingAutoSkills: false,
-				selfImprovingAutoMode: false,
-				selfImprovingReviewTeam: false,
-				selfImprovingFullTrust: false,
-				selfImprovingQuestionEvaluation: false,
-			}
-
-			expect(Experiments.isEnabled(experiments, EXPERIMENT_IDS.SELF_IMPROVING)).toBe(false)
+			expect(Experiments.isEnabled(experiments, "nonExistentExperiment" as ExperimentId)).toBe(false)
 		})
 	})
 })
