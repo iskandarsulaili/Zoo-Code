@@ -1776,15 +1776,17 @@ export class Task extends EventEmitter<TaskEvents> implements TaskLike {
 	}
 
 	async sayAndCreateMissingParamError(toolName: ToolName, paramName: string, relPath?: string) {
+		// Consult ToolErrorHealer for fix suggestion first so we can include it in both say and tool result
+		const fix = this.toolErrorHealer?.handleToolError(toolName, paramName)
+		const fixSuffix = fix ? ` Suggestion: ${fix.fix}` : ""
+
 		await this.say(
 			"error",
 			`Roo tried to use ${toolName}${
 				relPath ? ` for '${relPath.toPosix()}'` : ""
-			} without value for required parameter '${paramName}'. Retrying...`,
+			} without value for required parameter '${paramName}'. Retrying...${fixSuffix}`,
 		)
 
-		// Consult ToolErrorHealer for fix suggestion and include it in the error message
-		const fix = this.toolErrorHealer?.handleToolError(toolName, paramName)
 		const baseError = formatResponse.missingToolParameterError(paramName)
 		if (fix) {
 			const fixHint = fix.autoCorrectable ? `\n\n[Fix suggestion: ${fix.fix}]` : `\n\n[Hint: ${fix.fix}]`

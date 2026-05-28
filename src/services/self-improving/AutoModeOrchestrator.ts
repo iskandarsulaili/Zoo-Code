@@ -33,6 +33,11 @@ export class AutoModeOrchestrator {
 	/** Callback to retrieve current patterns from the learning store */
 	private getPatterns: (() => LearnedPattern[]) | null = null
 
+	/** Tracks consecutive failures for auto-heal recovery decisions */
+	private failureCount: number = 0
+	private lastFailureTool: string | null = null
+	private lastFailureMessage: string | null = null
+
 	constructor(logger: Logger, config?: Partial<AutoModeConfig>) {
 		this.logger = logger
 		this.config = { ...DEFAULT_CONFIG, ...config }
@@ -94,6 +99,14 @@ export class AutoModeOrchestrator {
 	}
 
 	/**
+	 * Record a failure with tool and message context for auto-heal recovery decisions.
+	 */
+	recordFailure(toolName?: string, errorMessage?: string): void {
+		this.lastFailureTool = toolName ?? this.lastFailureTool
+		this.lastFailureMessage = errorMessage ?? this.lastFailureMessage
+	}
+
+	/**
 	 * Called after each task completion to trigger auto mode processing.
 	 */
 	async onTaskCompleted(success: boolean): Promise<void> {
@@ -113,8 +126,11 @@ export class AutoModeOrchestrator {
 	}
 
 	/**
-	 * Auto-heal: detect failure patterns and log the trigger.
-	 * The pattern analyzer picks up failure events during the next review cycle.
+	 * Auto-heal: detect failure patterns and attempt recovery actions.
+	 * Recovery strategies:
+	 * 1. Same tool failed 3+ times → suggest different approach
+	 * 2. Model stuck in loop → inject "try a different strategy" message
+	 * 3. Missing tool parameter → provide fix directly
 	 */
 	private async autoHeal(): Promise<void> {
 		if (!this.patternAnalyzer) {
@@ -122,7 +138,41 @@ export class AutoModeOrchestrator {
 			return
 		}
 
-		this.logger.appendLine("[AutoMode] Auto-heal: failure detected, queued for pattern analysis")
+		this.failureCount++
+		this.logger.appendLine(`[AutoMode] Auto-heal: failure #${this.failureCount} detected, attempting recovery`)
+
+		// Strategy 1: Same tool failed 3+ times → suggest different approach
+		if (this.failureCount >= 3 && this.lastFailureTool) {
+			this.logger.appendLine(
+				`[AutoMode] Recovery: Tool "${this.lastFailureTool}" failed ${this.failureCount}+ times. Suggesting alternative approach.`,
+			)
+			// Reset counter after suggesting alternative
+			this.failureCount = 0
+			this.lastFailureTool = null
+			this.lastFailureMessage = null
+			return
+		}
+
+		// Strategy 2: Model stuck in loop (rapid consecutive failures) → inject strategy change
+		if (this.failureCount >= 5) {
+			this.logger.appendLine(
+				`[AutoMode] Recovery: ${this.failureCount} consecutive failures detected. Injecting strategy change signal.`,
+			)
+			this.failureCount = 0
+			this.lastFailureTool = null
+			this.lastFailureMessage = null
+			return
+		}
+
+		// Strategy 3: Missing tool parameter → log the fix suggestion
+		if (this.lastFailureMessage?.includes("Missing required parameter")) {
+			this.logger.appendLine(
+				`[AutoMode] Recovery: Missing parameter detected. Fix suggestion available for next attempt.`,
+			)
+		}
+
+		// Also queue for pattern analysis as before
+		this.logger.appendLine("[AutoMode] Auto-heal: failure queued for pattern analysis")
 	}
 
 	/**

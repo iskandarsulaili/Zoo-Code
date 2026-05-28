@@ -76,9 +76,11 @@ export class ReviewTeamService {
 		const deciderVote = this.deciderReview(pattern, [innovatorVote, contrarianVote, devilsAdvocateVote])
 
 		const weightedScore = this.calculateWeightedScore([innovatorVote, contrarianVote, devilsAdvocateVote])
+		// Lower threshold for new patterns to avoid chicken-and-egg problem
+		const threshold = pattern.frequency < 3 ? 0.4 : this.config.deciderThreshold
 		const approved = this.config.requireUnanimous
 			? innovatorVote.approved && contrarianVote.approved && devilsAdvocateVote.approved && deciderVote.approved
-			: weightedScore >= this.config.deciderThreshold && deciderVote.approved
+			: weightedScore >= threshold && deciderVote.approved
 
 		const summary = this.generateSummary(pattern, approved, weightedScore, [
 			innovatorVote,
@@ -215,7 +217,7 @@ export class ReviewTeamService {
 
 		// Low frequency patterns need more evidence
 		if ((pattern.frequency ?? 0) < 2) {
-			score -= 0.15
+			score -= 0.05
 			reasons.push("Low frequency — needs more evidence")
 		}
 
@@ -260,7 +262,7 @@ export class ReviewTeamService {
 
 		// Low frequency patterns might be coincidental
 		if ((pattern.frequency ?? 0) < 3) {
-			score -= 0.15
+			score -= 0.05
 			reasons.push("Low frequency — may be coincidental")
 		}
 

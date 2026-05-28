@@ -13,6 +13,7 @@ interface SkillMutationManager {
 		modeSlugs?: string[],
 	): Promise<string>
 	updateSkillContent(name: string, source: "global" | "project", content: string, mode?: string): Promise<void>
+	getSkillContent?(name: string, currentMode?: string): Promise<{ instructions: string } | null>
 }
 
 /**
@@ -216,6 +217,22 @@ export class ActionExecutor {
 
 		if (!skillName || !content || !source || !skillId) {
 			return false
+		}
+
+		// Deduplication check: skip update if skill content hasn't changed
+		if (this.skillsManager.getSkillContent) {
+			try {
+				const existing = await this.skillsManager.getSkillContent(skillName, mode)
+				if (existing && existing.instructions.trim() === content.trim()) {
+					this.logger.appendLine(`[ActionExecutor] Skill content unchanged for ${skillName}, skipping update`)
+					return false
+				}
+			} catch {
+				// If we can't read the existing content, proceed with update
+				this.logger.appendLine(
+					`[ActionExecutor] Could not read existing skill content for ${skillName}, proceeding with update`,
+				)
+			}
 		}
 
 		await this.skillsManager.updateSkillContent(skillName, source, content, mode)

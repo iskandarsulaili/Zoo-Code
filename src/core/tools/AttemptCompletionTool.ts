@@ -212,6 +212,12 @@ export class AttemptCompletionTool extends BaseTool<"attempt_completion"> {
 		// Register this task as completed to prevent duplicate calls
 		AttemptCompletionTool.completedTasks.add(task.taskId)
 
+		// Notify TrustService that task has completed to block auto-approval of subsequent attempt_completion
+		const provider = task.providerRef.deref()
+		if (provider?.trustService) {
+			provider.trustService.taskCompleted = true
+		}
+
 		// Force final token usage update before emitting TaskCompleted.
 		// This ensures the latest stats are captured regardless of throttle timer.
 		task.emitFinalTokenUsageUpdate()

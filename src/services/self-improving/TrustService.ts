@@ -28,6 +28,8 @@ export class TrustService {
 	private logger: Logger
 	private config: TrustConfig
 	private consecutiveActions: number = 0
+	/** Tracks whether the current task has already completed, preventing auto-approval of attempt_completion */
+	public taskCompleted: boolean = false
 
 	constructor(logger: Logger, config?: Partial<TrustConfig>) {
 		this.logger = logger
@@ -99,8 +101,16 @@ export class TrustService {
 				break
 
 			case "ask_followup_question":
-			case "attempt_completion":
 				// These are always auto-approved (they're user-facing, not dangerous)
+				approved = true
+				break
+
+			case "attempt_completion":
+				// Check if task already completed before auto-approving
+				if (this.taskCompleted) {
+					this.logger.appendLine(`[TrustService] Blocked attempt_completion: task already completed`)
+					return false
+				}
 				approved = true
 				break
 

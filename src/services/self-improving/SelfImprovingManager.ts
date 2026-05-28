@@ -132,6 +132,10 @@ export class SelfImprovingManager {
 		})
 	}
 
+	setCustomModesManager(manager: any): void {
+		this.modeFactory.setCustomModesManager(manager)
+	}
+
 	static isExperimentEnabled(experiments: Experiments | undefined, persistedEnabled?: boolean): boolean {
 		// Check VS Code experiment flag first
 		if (experiments && experiments[SELF_IMPROVING_EXPERIMENT_ID] === true) {

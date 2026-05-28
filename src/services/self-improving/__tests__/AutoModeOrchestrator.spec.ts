@@ -73,7 +73,7 @@ describe("AutoModeOrchestrator", () => {
 			orchestrator.setPatternAnalyzer({} as any)
 
 			await orchestrator.onTaskCompleted(false)
-			expect(mockLogger.appendLine).toHaveBeenCalledWith(expect.stringContaining("failure detected"))
+			expect(mockLogger.appendLine).toHaveBeenCalledWith(expect.stringContaining("failure #1 detected"))
 		})
 
 		it("should not trigger auto-heal on success", async () => {

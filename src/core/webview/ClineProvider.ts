@@ -257,6 +257,9 @@ export class ClineProvider
 			},
 		})
 
+		// Wire CustomModesManager into ModeFactoryService for auto mode creation
+		this.selfImprovingManager.setCustomModesManager(this.customModesManager)
+
 		// Initialize TrustService for auto-approval (experiment-gated)
 		this.trustService = new TrustService(
 			{
