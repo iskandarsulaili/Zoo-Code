@@ -1523,6 +1523,13 @@ export class Task extends EventEmitter<TaskEvents> implements TaskLike {
 						})
 				}
 
+				// Reset TrustService taskCompleted latch when user sends a new message.
+				// This allows subsequent attempt_completion calls to be auto-approved
+				// after the user provides follow-up feedback on a completed task.
+				if (provider.trustService?.taskCompleted) {
+					provider.trustService.taskCompleted = false
+				}
+
 				this.emit(RooCodeEventName.TaskUserMessage, this.taskId)
 
 				// Handle the message directly instead of routing through the webview.
