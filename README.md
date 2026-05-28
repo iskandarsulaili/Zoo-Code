@@ -53,6 +53,8 @@ Monthly cost: LLM & electric bills
 Non-refundable cost: My soul
 Revenue generated so far: 0 and still counting zero
 
+## Special Messages
+
 Don't star this repo. It will just get me excited to drag you into the jobless community
 
 Any issue not related to self-learning, submit at https://github.com/Zoo-Code-Org/Zoo-Code/issues as they know more than me (no cap)
@@ -67,10 +69,10 @@ Any issue not related to self-learning, submit at https://github.com/Zoo-Code-Or
 
 **A:** Sleep
 
-**Q:** Ooo. Can I buy you coffee?
+**Q:** Ooo... Can I buy you coffee?
 
 **A:** No. I have insomnia.
 
-**Q:** Can I?
+**Q:** Can I...?
 
 **A:** This is end of conversation.
