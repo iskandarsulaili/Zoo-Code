@@ -14,7 +14,7 @@ Poo-Code is a fork of Zoo-Code which is a fork of Roo-Code which is a fork of Cl
 
 The ultimate goal is to totally replace you, so you can be permanently "Ooo" (Out of Office) and jobless like I am.
 
-## What's different from Zoo-Code main
+## What's different from Zoo-Code
 
 This fork adds **~10,500 lines** of self-improving infrastructure across **45 files** (25 source + 20 test), all behind experiment toggles. Every new feature is gated — Zoo-Code main's behaviour is preserved with everything off.
 

@@ -106,6 +106,11 @@ export const globalSettingsSchema = z.object({
 	kaizenMiniGoal: z.string().optional(),
 	kaizenLimit: z.number().min(1).max(1000).optional(),
 
+	// KAIZEN git auto-push configuration
+	kaizenAutoPush: z.boolean().optional(),
+	kaizenRemoteName: z.string().optional(),
+	kaizenCommitTemplate: z.string().optional(),
+
 	customCondensingPrompt: z.string().optional(),
 
 	autoApprovalEnabled: z.boolean().optional(),
