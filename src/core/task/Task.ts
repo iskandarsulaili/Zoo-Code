@@ -1251,7 +1251,7 @@ export class Task extends EventEmitter<TaskEvents> implements TaskLike {
 								followUpData.question ?? "",
 								followUpData.suggest.map((s) => ({ text: s.answer, mode: s.mode ?? null })),
 							)
-							this.logger.appendLine(
+							console.error(
 								`[Task] Question evaluated: chose #${evaluation.selectedIndex + 1} via ${evaluation.evaluatedBy}: "${evaluation.selectedText.substring(0, 60)}..."`,
 							)
 							this.handleWebviewAskResponse("messageResponse", evaluation.selectedText)
@@ -1259,9 +1259,7 @@ export class Task extends EventEmitter<TaskEvents> implements TaskLike {
 							return
 						}
 					} catch (error) {
-						this.logger.appendLine(
-							`[Task] Question evaluation failed, falling back to first choice: ${error}`,
-						)
+						console.error(`[Task] Question evaluation failed, falling back to first choice: ${error}`)
 					}
 				}
 				// Fallback: first choice

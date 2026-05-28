@@ -128,8 +128,8 @@ export class QuestionEvaluatorService {
 				confidenceScore: 0.5,
 				frequency: 1,
 				successRate: 0.5,
-				firstSeenAt: new Date(),
-				lastSeenAt: new Date(),
+				firstSeenAt: Date.now(),
+				lastSeenAt: Date.now(),
 				sourceSignals: [],
 				context: {
 					toolNames: ["ask_followup_question"],
