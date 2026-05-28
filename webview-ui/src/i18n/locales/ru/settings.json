@@ -858,6 +858,15 @@
 			"name": "Интеграция индекса кода",
 			"description": "Используйте векторный поиск для дедупликации, извлечения и оценки шаблонов"
 		}
+,
+		"ONE_SHOT_ORCHESTRATOR": {
+			"name": "ONE-SHOT Orchestrator",
+			"description": "Включить режим ONE-SHOT Orchestrator для автономной сборки полноценных проектов"
+		},
+		"KAIZEN_ORCHESTRATOR": {
+			"name": "KAIZEN Orchestrator",
+			"description": "Включить режим KAIZEN Orchestrator для непрерывного улучшения кодовой базы"
+		}
 	},
 	"promptCaching": {
 		"label": "Отключить кэширование промптов",

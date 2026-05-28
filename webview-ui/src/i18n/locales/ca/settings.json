@@ -858,6 +858,15 @@
 			"name": "Integració d'índex de codi",
 			"description": "Utilitza cerca vectorial per a deduplicació, recuperació i puntuació de patrons"
 		}
+,
+		"ONE_SHOT_ORCHESTRATOR": {
+			"name": "ONE-SHOT Orchestrator",
+			"description": "Activa el mode ONE-SHOT Orchestrator per a la construcció autònoma de projectes complets"
+		},
+		"KAIZEN_ORCHESTRATOR": {
+			"name": "KAIZEN Orchestrator",
+			"description": "Activa el mode KAIZEN Orchestrator per a la millora contínua del codi"
+		}
 	},
 	"promptCaching": {
 		"label": "Desactivar la memòria cau de prompts",

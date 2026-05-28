@@ -858,6 +858,15 @@
 			"name": "コードインデックス統合",
 			"description": "パターンの重複排除、検索、スコアリングにベクトル検索を使用"
 		}
+,
+		"ONE_SHOT_ORCHESTRATOR": {
+			"name": "ONE-SHOT Orchestrator",
+			"description": "自律的なフルスタックプロジェクト構築のためのONE-SHOT Orchestratorモードを有効化"
+		},
+		"KAIZEN_ORCHESTRATOR": {
+			"name": "KAIZEN Orchestrator",
+			"description": "継続的なコードベース改善のためのKAIZEN Orchestratorモードを有効化"
+		}
 	},
 	"promptCaching": {
 		"label": "プロンプトキャッシュを無効化",

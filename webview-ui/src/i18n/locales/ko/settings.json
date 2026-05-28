@@ -858,6 +858,15 @@
 			"name": "코드 인덱스 통합",
 			"description": "패턴 중복 제거, 검색 및 점수 매기기에 벡터 검색 사용"
 		}
+,
+		"ONE_SHOT_ORCHESTRATOR": {
+			"name": "ONE-SHOT Orchestrator",
+			"description": "자율적인 풀스택 프로젝트 구축을 위한 ONE-SHOT Orchestrator 모드 활성화"
+		},
+		"KAIZEN_ORCHESTRATOR": {
+			"name": "KAIZEN Orchestrator",
+			"description": "지속적인 코드베이스 개선을 위한 KAIZEN Orchestrator 모드 활성화"
+		}
 	},
 	"promptCaching": {
 		"label": "프롬프트 캐싱 비활성화",

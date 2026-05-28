@@ -858,6 +858,15 @@
 			"name": "Intégration d'index de code",
 			"description": "Utiliser la recherche vectorielle pour la déduplication, la récupération et la notation des motifs"
 		}
+,
+		"ONE_SHOT_ORCHESTRATOR": {
+			"name": "ONE-SHOT Orchestrator",
+			"description": "Activer le mode ONE-SHOT Orchestrator pour la construction autonome de projets complets"
+		},
+		"KAIZEN_ORCHESTRATOR": {
+			"name": "KAIZEN Orchestrator",
+			"description": "Activer le mode KAIZEN Orchestrator pour l'amélioration continue du code"
+		}
 	},
 	"promptCaching": {
 		"label": "Désactiver la mise en cache des prompts",

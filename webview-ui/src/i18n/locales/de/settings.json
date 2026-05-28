@@ -858,6 +858,15 @@
 			"name": "Code-Index-Integration",
 			"description": "Nutze Vektorsuche für Pattern-Deduplizierung, Abruf und Bewertung"
 		}
+,
+		"ONE_SHOT_ORCHESTRATOR": {
+			"name": "ONE-SHOT Orchestrator",
+			"description": "ONE-SHOT Orchestrator-Modus für autonomes Full-Stack-Projekt-Building aktivieren"
+		},
+		"KAIZEN_ORCHESTRATOR": {
+			"name": "KAIZEN Orchestrator",
+			"description": "KAIZEN Orchestrator-Modus für kontinuierliche Codebase-Verbesserung aktivieren"
+		}
 	},
 	"promptCaching": {
 		"label": "Prompt-Caching deaktivieren",

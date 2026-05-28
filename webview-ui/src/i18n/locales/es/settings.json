@@ -858,6 +858,15 @@
 			"name": "Integración de índice de código",
 			"description": "Utiliza búsqueda vectorial para deduplicación, recuperación y puntuación de patrones"
 		}
+,
+		"ONE_SHOT_ORCHESTRATOR": {
+			"name": "ONE-SHOT Orchestrator",
+			"description": "Activar el modo ONE-SHOT Orchestrator para construcción autónoma de proyectos completos"
+		},
+		"KAIZEN_ORCHESTRATOR": {
+			"name": "KAIZEN Orchestrator",
+			"description": "Activar el modo KAIZEN Orchestrator para mejora continua del código"
+		}
 	},
 	"promptCaching": {
 		"label": "Desactivar caché de prompts",

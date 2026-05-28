@@ -94,7 +94,9 @@ export const ExperimentalSettings = ({
 							key !== "SELF_IMPROVING_TOOL_PREFERENCE" &&
 							key !== "SELF_IMPROVING_SKILL_MERGE" &&
 							key !== "SELF_IMPROVING_PERSIST_COUNTS" &&
-							key !== "SELF_IMPROVING_CODE_INDEX",
+							key !== "SELF_IMPROVING_CODE_INDEX" &&
+							key !== "ONE_SHOT_ORCHESTRATOR" &&
+							key !== "KAIZEN_ORCHESTRATOR",
 					)
 					.map((config) => {
 						const experimentKey = config[0]
@@ -408,6 +410,32 @@ export const ExperimentalSettings = ({
 													checkboxTestId="experimental-self-improving-code-index-checkbox"
 												/>
 												<SelfImprovingStatus />
+												<ExperimentalFeature
+													experimentKey="ONE_SHOT_ORCHESTRATOR"
+													enabled={
+														experiments[EXPERIMENT_IDS.ONE_SHOT_ORCHESTRATOR] ?? false
+													}
+													onChange={(enabled) =>
+														setExperimentEnabled(
+															EXPERIMENT_IDS.ONE_SHOT_ORCHESTRATOR,
+															enabled,
+														)
+													}
+													checkboxTestId="experimental-one-shot-orchestrator-checkbox"
+												/>
+												<ExperimentalFeature
+													experimentKey="KAIZEN_ORCHESTRATOR"
+													enabled={
+														experiments[EXPERIMENT_IDS.KAIZEN_ORCHESTRATOR] ?? false
+													}
+													onChange={(enabled) =>
+														setExperimentEnabled(
+															EXPERIMENT_IDS.KAIZEN_ORCHESTRATOR,
+															enabled,
+														)
+													}
+													checkboxTestId="experimental-kaizen-orchestrator-checkbox"
+												/>
 											</div>
 										)}
 									</div>

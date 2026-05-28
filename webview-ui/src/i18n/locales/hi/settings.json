@@ -858,6 +858,15 @@
 			"name": "कोड इंडेक्स एकीकरण",
 			"description": "पैटर्न डिडुप, पुनर्प्राप्ति और स्कोरिंग के लिए वेक्टर खोज का उपयोग करें"
 		}
+,
+		"ONE_SHOT_ORCHESTRATOR": {
+			"name": "ONE-SHOT Orchestrator",
+			"description": "संपूर्ण प्रोजेक्ट निर्माण के लिए ONE-SHOT Orchestrator मोड सक्षम करें"
+		},
+		"KAIZEN_ORCHESTRATOR": {
+			"name": "KAIZEN Orchestrator",
+			"description": "निरंतर कोडबेस सुधार के लिए KAIZEN Orchestrator मोड सक्षम करें"
+		}
 	},
 	"promptCaching": {
 		"label": "प्रॉम्प्ट कैशिंग अक्षम करें",

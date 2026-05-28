@@ -858,6 +858,15 @@
 			"name": "Integrasi Indeks Kode",
 			"description": "Gunakan pencarian vektor untuk dedup, pengambilan, dan penilaian pola"
 		}
+,
+		"ONE_SHOT_ORCHESTRATOR": {
+			"name": "ONE-SHOT Orchestrator",
+			"description": "Aktifkan mode ONE-SHOT Orchestrator untuk pembangunan proyek full-stack otonom"
+		},
+		"KAIZEN_ORCHESTRATOR": {
+			"name": "KAIZEN Orchestrator",
+			"description": "Aktifkan mode KAIZEN Orchestrator untuk perbaikan kode berkelanjutan"
+		}
 	},
 	"promptCaching": {
 		"label": "Nonaktifkan prompt caching",

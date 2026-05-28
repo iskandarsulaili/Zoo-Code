@@ -101,6 +101,11 @@ export const globalSettingsSchema = z.object({
 	selfImprovingScope: selfImprovingScopeSchema.optional(),
 	selfImprovingAutoSkillsScope: selfImprovingScopeSchema.optional(),
 
+	// KAIZEN orchestrator configuration
+	kaizenFrequency: z.number().min(1).max(100).optional(),
+	kaizenMiniGoal: z.string().optional(),
+	kaizenLimit: z.number().min(1).max(1000).optional(),
+
 	customCondensingPrompt: z.string().optional(),
 
 	autoApprovalEnabled: z.boolean().optional(),

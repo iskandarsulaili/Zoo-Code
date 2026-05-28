@@ -858,6 +858,15 @@
 			"name": "Tích hợp chỉ mục mã",
 			"description": "Sử dụng tìm kiếm vector để loại trùng, truy xuất và chấm điểm mẫu"
 		}
+,
+		"ONE_SHOT_ORCHESTRATOR": {
+			"name": "ONE-SHOT Orchestrator",
+			"description": "Bật chế độ ONE-SHOT Orchestrator để xây dựng dự án full-stack tự động"
+		},
+		"KAIZEN_ORCHESTRATOR": {
+			"name": "KAIZEN Orchestrator",
+			"description": "Bật chế độ KAIZEN Orchestrator để cải thiện mã nguồn liên tục"
+		}
 	},
 	"promptCaching": {
 		"label": "Tắt bộ nhớ đệm prompt",

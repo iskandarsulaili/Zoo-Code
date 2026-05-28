@@ -858,6 +858,15 @@
 			"name": "代码索引集成",
 			"description": "使用向量搜索进行模式去重、检索和评分"
 		}
+,
+		"ONE_SHOT_ORCHESTRATOR": {
+			"name": "ONE-SHOT Orchestrator",
+			"description": "启用ONE-SHOT Orchestrator模式以自动构建完整全栈项目"
+		},
+		"KAIZEN_ORCHESTRATOR": {
+			"name": "KAIZEN Orchestrator",
+			"description": "启用KAIZEN Orchestrator模式以持续改进代码库"
+		}
 	},
 	"promptCaching": {
 		"label": "禁用提示词缓存",

@@ -858,6 +858,15 @@
 			"name": "Kod Dizini Entegrasyonu",
 			"description": "Desen tekilleştirme, alma ve puanlama için vektör araması kullan"
 		}
+,
+		"ONE_SHOT_ORCHESTRATOR": {
+			"name": "ONE-SHOT Orchestrator",
+			"description": "Otonom full-stack proje oluşturma için ONE-SHOT Orchestrator modunu etkinleştir"
+		},
+		"KAIZEN_ORCHESTRATOR": {
+			"name": "KAIZEN Orchestrator",
+			"description": "Sürekli kod tabanı iyileştirme için KAIZEN Orchestrator modunu etkinleştir"
+		}
 	},
 	"promptCaching": {
 		"label": "Prompt önbelleğini devre dışı bırak",

@@ -50,6 +50,8 @@ describe("experiments", () => {
 				selfImprovingSkillMerge: false,
 				selfImprovingPersistCounts: false,
 				selfImprovingCodeIndex: false,
+				oneShotOrchestrator: false,
+				kaizenOrchestrator: false,
 			}
 			expect(Experiments.isEnabled(experiments, EXPERIMENT_IDS.PREVENT_FOCUS_DISRUPTION)).toBe(false)
 		})
@@ -71,6 +73,8 @@ describe("experiments", () => {
 				selfImprovingSkillMerge: false,
 				selfImprovingPersistCounts: false,
 				selfImprovingCodeIndex: false,
+				oneShotOrchestrator: false,
+				kaizenOrchestrator: false,
 			}
 			expect(Experiments.isEnabled(experiments, EXPERIMENT_IDS.SELF_IMPROVING)).toBe(true)
 		})
@@ -92,6 +96,8 @@ describe("experiments", () => {
 				selfImprovingSkillMerge: false,
 				selfImprovingPersistCounts: false,
 				selfImprovingCodeIndex: false,
+				oneShotOrchestrator: false,
+				kaizenOrchestrator: false,
 			}
 			expect(Experiments.isEnabled(experiments, "nonExistentExperiment" as ExperimentId)).toBe(false)
 		})

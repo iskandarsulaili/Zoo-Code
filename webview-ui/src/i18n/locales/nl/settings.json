@@ -858,6 +858,15 @@
 			"name": "Code-indexintegratie",
 			"description": "Gebruik vectorzoekopdracht voor patroondeduplicatie, ophalen en scoren"
 		}
+,
+		"ONE_SHOT_ORCHESTRATOR": {
+			"name": "ONE-SHOT Orchestrator",
+			"description": "ONE-SHOT Orchestrator-modus inschakelen voor autonome full-stack projectbouw"
+		},
+		"KAIZEN_ORCHESTRATOR": {
+			"name": "KAIZEN Orchestrator",
+			"description": "KAIZEN Orchestrator-modus inschakelen voor continue codebase-verbetering"
+		}
 	},
 	"promptCaching": {
 		"label": "Prompt caching inschakelen",

@@ -929,6 +929,14 @@
 			"name": "Code Index Integration",
 			"description": "Use vector search for pattern dedup, retrieval, and scoring"
 		},
+		"ONE_SHOT_ORCHESTRATOR": {
+			"name": "ONE-SHOT Orchestrator",
+			"description": "Enable ONE-SHOT Orchestrator mode for autonomous full-stack project building"
+		},
+		"KAIZEN_ORCHESTRATOR": {
+			"name": "KAIZEN Orchestrator",
+			"description": "Enable KAIZEN Orchestrator mode for continuous codebase improvement"
+		},
 		"CUSTOM_TOOLS": {
 			"name": "Enable custom tools",
 			"description": "When enabled, Zoo can load and use custom TypeScript/JavaScript tools from your project's .roo/tools directory or ~/.roo/tools for global tools. Note: these tools will automatically be auto-approved.",

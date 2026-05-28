@@ -858,6 +858,15 @@
 			"name": "Integracja indeksu kodu",
 			"description": "Użyj wyszukiwania wektorowego do deduplikacji, wyszukiwania i oceny wzorców"
 		}
+,
+		"ONE_SHOT_ORCHESTRATOR": {
+			"name": "ONE-SHOT Orchestrator",
+			"description": "Włącz tryb ONE-SHOT Orchestrator do autonomicznego budowania pełnych projektów"
+		},
+		"KAIZEN_ORCHESTRATOR": {
+			"name": "KAIZEN Orchestrator",
+			"description": "Włącz tryb KAIZEN Orchestrator do ciągłego ulepszania bazy kodu"
+		}
 	},
 	"promptCaching": {
 		"label": "Wyłącz buforowanie promptów",

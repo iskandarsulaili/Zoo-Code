@@ -868,6 +868,15 @@
 			"name": "程式碼索引整合",
 			"description": "使用向量搜尋進行模式去重、檢索和評分"
 		}
+,
+		"ONE_SHOT_ORCHESTRATOR": {
+			"name": "ONE-SHOT Orchestrator",
+			"description": "啟用ONE-SHOT Orchestrator模式以自動構建完整全棧專案"
+		},
+		"KAIZEN_ORCHESTRATOR": {
+			"name": "KAIZEN Orchestrator",
+			"description": "啟用KAIZEN Orchestrator模式以持續改進程式碼庫"
+		}
 	},
 	"promptCaching": {
 		"label": "停用提示詞快取",

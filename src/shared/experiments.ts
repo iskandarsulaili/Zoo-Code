@@ -16,6 +16,8 @@ export const EXPERIMENT_IDS = {
 	SELF_IMPROVING_SKILL_MERGE: "selfImprovingSkillMerge",
 	SELF_IMPROVING_PERSIST_COUNTS: "selfImprovingPersistCounts",
 	SELF_IMPROVING_CODE_INDEX: "selfImprovingCodeIndex",
+	ONE_SHOT_ORCHESTRATOR: "oneShotOrchestrator",
+	KAIZEN_ORCHESTRATOR: "kaizenOrchestrator",
 } as const satisfies Record<string, ExperimentId>
 
 type _AssertExperimentIds = AssertEqual<Equals<ExperimentId, Values<typeof EXPERIMENT_IDS>>>
@@ -42,6 +44,8 @@ export const experimentConfigsMap: Record<ExperimentKey, ExperimentConfig> = {
 	SELF_IMPROVING_SKILL_MERGE: { enabled: true },
 	SELF_IMPROVING_PERSIST_COUNTS: { enabled: true },
 	SELF_IMPROVING_CODE_INDEX: { enabled: true },
+	ONE_SHOT_ORCHESTRATOR: { enabled: false },
+	KAIZEN_ORCHESTRATOR: { enabled: false },
 }
 
 export const experimentDefault = Object.fromEntries(
