@@ -837,6 +837,26 @@
 		"SELF_IMPROVING_QUESTION_EVALUATION": {
 			"name": "问题评估",
 			"description": "启用用户问题评估以提高响应质量和相关性"
+		},
+		"SELF_IMPROVING_PROMPT_QUALITY": {
+			"name": "提示词质量分析",
+			"description": "分析提示词质量模式以实现自我改进"
+		},
+		"SELF_IMPROVING_TOOL_PREFERENCE": {
+			"name": "工具偏好反馈",
+			"description": "收集工具偏好反馈以实现自我改进"
+		},
+		"SELF_IMPROVING_SKILL_MERGE": {
+			"name": "技能合并",
+			"description": "自动将相似技能合并为统括技能"
+		},
+		"SELF_IMPROVING_PERSIST_COUNTS": {
+			"name": "持久化审查计数",
+			"description": "在重启之间持久化已批准的模板和操作计数"
+		},
+		"SELF_IMPROVING_CODE_INDEX": {
+			"name": "代码索引集成",
+			"description": "使用向量搜索进行模式去重、检索和评分"
 		}
 	},
 	"promptCaching": {

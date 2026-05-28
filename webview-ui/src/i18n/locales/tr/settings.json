@@ -837,6 +837,26 @@
 		"SELF_IMPROVING_QUESTION_EVALUATION": {
 			"name": "Soru Değerlendirme",
 			"description": "Yanıt kalitesini ve alaka düzeyini iyileştirmek için kullanıcı sorularının değerlendirmesini etkinleştirin"
+		},
+		"SELF_IMPROVING_PROMPT_QUALITY": {
+			"name": "Prompt Kalite Analizi",
+			"description": "Kendini geliştirme için prompt kalite modellerini analiz et"
+		},
+		"SELF_IMPROVING_TOOL_PREFERENCE": {
+			"name": "Araç Tercihi Geri Bildirimi",
+			"description": "Kendini geliştirme için araç tercihi geri bildirimi topla"
+		},
+		"SELF_IMPROVING_SKILL_MERGE": {
+			"name": "Yetenek Birleştirme",
+			"description": "Benzer yetenekleri otomatik olarak şemsiye yeteneklerde birleştir"
+		},
+		"SELF_IMPROVING_PERSIST_COUNTS": {
+			"name": "İnceleme Sayılarını Sakla",
+			"description": "Onaylanan desen ve eylem sayılarını yeniden başlatmalar arasında sakla"
+		},
+		"SELF_IMPROVING_CODE_INDEX": {
+			"name": "Kod Dizini Entegrasyonu",
+			"description": "Desen tekilleştirme, alma ve puanlama için vektör araması kullan"
 		}
 	},
 	"promptCaching": {

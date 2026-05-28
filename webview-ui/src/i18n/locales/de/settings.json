@@ -837,6 +837,26 @@
 		"SELF_IMPROVING_QUESTION_EVALUATION": {
 			"name": "Fragenbewertung",
 			"description": "Aktivieren Sie die Bewertung von Benutzerfragen, um die Antwortqualität und -relevanz zu verbessern"
+		},
+		"SELF_IMPROVING_PROMPT_QUALITY": {
+			"name": "Prompt-Qualitätsanalyse",
+			"description": "Analysiere Prompt-Qualitätsmuster zur Selbstverbesserung"
+		},
+		"SELF_IMPROVING_TOOL_PREFERENCE": {
+			"name": "Tool-Präferenz-Feedback",
+			"description": "Sammle Tool-Präferenz-Feedback zur Selbstverbesserung"
+		},
+		"SELF_IMPROVING_SKILL_MERGE": {
+			"name": "Skill-Zusammenführung",
+			"description": "Führe ähnliche Skills automatisch zu übergreifenden Skills zusammen"
+		},
+		"SELF_IMPROVING_PERSIST_COUNTS": {
+			"name": "Review-Zählungen speichern",
+			"description": "Speichere genehmigte Muster- und Aktionszählungen über Neustarts hinweg"
+		},
+		"SELF_IMPROVING_CODE_INDEX": {
+			"name": "Code-Index-Integration",
+			"description": "Nutze Vektorsuche für Pattern-Deduplizierung, Abruf und Bewertung"
 		}
 	},
 	"promptCaching": {

@@ -837,6 +837,26 @@
 		"SELF_IMPROVING_QUESTION_EVALUATION": {
 			"name": "Evaluasi Pertanyaan",
 			"description": "Aktifkan evaluasi pertanyaan pengguna untuk meningkatkan kualitas dan relevansi respons"
+		},
+		"SELF_IMPROVING_PROMPT_QUALITY": {
+			"name": "Analisis Kualitas Prompt",
+			"description": "Analisis pola kualitas prompt untuk perbaikan diri"
+		},
+		"SELF_IMPROVING_TOOL_PREFERENCE": {
+			"name": "Umpan Balik Preferensi Alat",
+			"description": "Kumpulkan umpan balik preferensi alat untuk perbaikan diri"
+		},
+		"SELF_IMPROVING_SKILL_MERGE": {
+			"name": "Penggabungan Skill",
+			"description": "Gabungkan skill serupa secara otomatis menjadi skill payung"
+		},
+		"SELF_IMPROVING_PERSIST_COUNTS": {
+			"name": "Pertahankan Hitungan Review",
+			"description": "Pertahankan hitungan pola dan tindakan yang disetujui di seluruh restart"
+		},
+		"SELF_IMPROVING_CODE_INDEX": {
+			"name": "Integrasi Indeks Kode",
+			"description": "Gunakan pencarian vektor untuk dedup, pengambilan, dan penilaian pola"
 		}
 	},
 	"promptCaching": {

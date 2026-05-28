@@ -833,7 +833,32 @@
 		"SELF_IMPROVING": {
 			"name": "Auto-miglioramento",
 			"description": "Abilita l'apprendimento in background dai risultati delle attività per migliorare nel tempo la guida dei prompt, le preferenze degli strumenti e la prevenzione degli errori"
+		,
+		"SELF_IMPROVING_QUESTION_EVALUATION": {
+			"name": "Question Evaluation",
+			"description": "Enable evaluation of user questions to improve response quality and relevance"
+		},
+		"SELF_IMPROVING_PROMPT_QUALITY": {
+			"name": "Analisi qualità prompt",
+			"description": "Analizza i modelli di qualità dei prompt per l'auto-miglioramento"
+		},
+		"SELF_IMPROVING_TOOL_PREFERENCE": {
+			"name": "Feedback preferenze strumenti",
+			"description": "Raccogli feedback sulle preferenze degli strumenti per l'auto-miglioramento"
+		},
+		"SELF_IMPROVING_SKILL_MERGE": {
+			"name": "Unione competenze",
+			"description": "Unisci automaticamente competenze simili in competenze ombrello"
+		},
+		"SELF_IMPROVING_PERSIST_COUNTS": {
+			"name": "Persisti conteggi revisione",
+			"description": "Mantieni i conteggi di pattern e azioni approvati tra i riavvii"
+		},
+		"SELF_IMPROVING_CODE_INDEX": {
+			"name": "Integrazione indice codice",
+			"description": "Utilizza la ricerca vettoriale per deduplicazione, recupero e punteggio dei pattern"
 		}
+}
 	},
 	"promptCaching": {
 		"label": "Disattiva la cache dei prompt",

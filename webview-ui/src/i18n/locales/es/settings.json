@@ -837,6 +837,26 @@
 		"SELF_IMPROVING_QUESTION_EVALUATION": {
 			"name": "Evaluación de Preguntas",
 			"description": "Habilitar la evaluación de preguntas del usuario para mejorar la calidad y relevancia de las respuestas"
+		},
+		"SELF_IMPROVING_PROMPT_QUALITY": {
+			"name": "Análisis de calidad de prompts",
+			"description": "Analiza patrones de calidad de prompts para la automejora"
+		},
+		"SELF_IMPROVING_TOOL_PREFERENCE": {
+			"name": "Retroalimentación de preferencias de herramientas",
+			"description": "Recopila comentarios sobre preferencias de herramientas para la automejora"
+		},
+		"SELF_IMPROVING_SKILL_MERGE": {
+			"name": "Fusión de habilidades",
+			"description": "Fusiona automáticamente habilidades similares en habilidades generales"
+		},
+		"SELF_IMPROVING_PERSIST_COUNTS": {
+			"name": "Persistir recuentos de revisión",
+			"description": "Persiste recuentos de patrones y acciones aprobados entre reinicios"
+		},
+		"SELF_IMPROVING_CODE_INDEX": {
+			"name": "Integración de índice de código",
+			"description": "Utiliza búsqueda vectorial para deduplicación, recuperación y puntuación de patrones"
 		}
 	},
 	"promptCaching": {

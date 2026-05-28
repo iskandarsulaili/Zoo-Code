@@ -837,6 +837,26 @@
 		"SELF_IMPROVING_QUESTION_EVALUATION": {
 			"name": "Đánh Giá Câu Hỏi",
 			"description": "Bật đánh giá câu hỏi của người dùng để cải thiện chất lượng và mức độ liên quan của phản hồi"
+		},
+		"SELF_IMPROVING_PROMPT_QUALITY": {
+			"name": "Phân tích chất lượng prompt",
+			"description": "Phân tích các mẫu chất lượng prompt để tự cải thiện"
+		},
+		"SELF_IMPROVING_TOOL_PREFERENCE": {
+			"name": "Phản hồi ưu tiên công cụ",
+			"description": "Thu thập phản hồi ưu tiên công cụ để tự cải thiện"
+		},
+		"SELF_IMPROVING_SKILL_MERGE": {
+			"name": "Hợp nhất kỹ năng",
+			"description": "Tự động hợp nhất các kỹ năng tương tự thành kỹ năng tổng hợp"
+		},
+		"SELF_IMPROVING_PERSIST_COUNTS": {
+			"name": "Lưu số lần đánh giá",
+			"description": "Lưu số lần mẫu và hành động đã được phê duyệt qua các lần khởi động lại"
+		},
+		"SELF_IMPROVING_CODE_INDEX": {
+			"name": "Tích hợp chỉ mục mã",
+			"description": "Sử dụng tìm kiếm vector để loại trùng, truy xuất và chấm điểm mẫu"
 		}
 	},
 	"promptCaching": {

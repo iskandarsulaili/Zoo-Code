@@ -837,6 +837,26 @@
 		"SELF_IMPROVING_QUESTION_EVALUATION": {
 			"name": "Évaluation des Questions",
 			"description": "Activer l'évaluation des questions des utilisateurs pour améliorer la qualité et la pertinence des réponses"
+		},
+		"SELF_IMPROVING_PROMPT_QUALITY": {
+			"name": "Analyse de la qualité des prompts",
+			"description": "Analyser les modèles de qualité des prompts pour l'auto-amélioration"
+		},
+		"SELF_IMPROVING_TOOL_PREFERENCE": {
+			"name": "Retour sur les préférences d'outils",
+			"description": "Recueillir les retours sur les préférences d'outils pour l'auto-amélioration"
+		},
+		"SELF_IMPROVING_SKILL_MERGE": {
+			"name": "Fusion de compétences",
+			"description": "Fusionner automatiquement les compétences similaires en compétences génériques"
+		},
+		"SELF_IMPROVING_PERSIST_COUNTS": {
+			"name": "Persister les comptes de révision",
+			"description": "Conserver les comptes de motifs et d'actions approuvés entre les redémarrages"
+		},
+		"SELF_IMPROVING_CODE_INDEX": {
+			"name": "Intégration d'index de code",
+			"description": "Utiliser la recherche vectorielle pour la déduplication, la récupération et la notation des motifs"
 		}
 	},
 	"promptCaching": {

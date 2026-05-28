@@ -82,7 +82,7 @@ export class QuestionEvaluatorService {
 				question,
 				choices,
 				selectedIndex: 0,
-				selectedText: choices[0]?.text ?? "",
+				selectedText: this.resolveSelectedText(choices, 0),
 				reasoning: "Evaluation disabled or too few choices",
 				evaluatedBy: "fallback",
 			}
@@ -110,7 +110,7 @@ export class QuestionEvaluatorService {
 			question,
 			choices,
 			selectedIndex: 0,
-			selectedText: choices[0]?.text ?? "",
+			selectedText: this.resolveSelectedText(choices, 0),
 			reasoning: "No evaluation strategy produced a result",
 			evaluatedBy: "fallback",
 		}
@@ -176,7 +176,7 @@ export class QuestionEvaluatorService {
 			question,
 			choices,
 			selectedIndex: best.index,
-			selectedText: choices[best.index]?.text ?? "",
+			selectedText: this.resolveSelectedText(choices, best.index),
 			reasoning: best.reasoning,
 			evaluatedBy: "full-team",
 		}
@@ -263,7 +263,7 @@ export class QuestionEvaluatorService {
 			question,
 			choices,
 			selectedIndex: best.index,
-			selectedText: choices[best.index]?.text ?? "",
+			selectedText: this.resolveSelectedText(choices, best.index),
 			reasoning: best.reasoning,
 			evaluatedBy: "contextual",
 		}
@@ -305,6 +305,31 @@ export class QuestionEvaluatorService {
 			)
 			return []
 		}
+	}
+
+	/**
+	 * Resolve the selected text with a fallback chain:
+	 * 1. Preferred choice's text (if non-empty)
+	 * 2. First choice's text (if non-empty)
+	 * 3. Empty string (last resort — should not happen in practice)
+	 *
+	 * This prevents empty responses when LLM evaluation returns malformed results
+	 * with empty text fields. The first choice is the same as what auto-approve
+	 * timeout would have selected anyway.
+	 */
+	private resolveSelectedText(
+		choices: { text: string; mode: string | null }[],
+		preferredIndex: number,
+	): string {
+		const preferred = choices[preferredIndex]?.text
+		if (preferred && preferred.trim().length > 0) {
+			return preferred
+		}
+		const fallback = choices[0]?.text
+		if (fallback && fallback.trim().length > 0) {
+			return fallback
+		}
+		return ""
 	}
 
 	getStatus(): Record<string, any> {

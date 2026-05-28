@@ -837,6 +837,26 @@
 		"SELF_IMPROVING_QUESTION_EVALUATION": {
 			"name": "質問評価",
 			"description": "ユーザーの質問を評価して、応答の品質と関連性を向上させる"
+		},
+		"SELF_IMPROVING_PROMPT_QUALITY": {
+			"name": "プロンプト品質分析",
+			"description": "自己改善のためのプロンプト品質パターンを分析"
+		},
+		"SELF_IMPROVING_TOOL_PREFERENCE": {
+			"name": "ツール設定フィードバック",
+			"description": "自己改善のためのツール設定フィードバックを収集"
+		},
+		"SELF_IMPROVING_SKILL_MERGE": {
+			"name": "スキルマージ",
+			"description": "類似スキルを自動的に統合スキルにマージ"
+		},
+		"SELF_IMPROVING_PERSIST_COUNTS": {
+			"name": "レビュー回数を保持",
+			"description": "再起動後も承認済みパターンとアクションのカウントを保持"
+		},
+		"SELF_IMPROVING_CODE_INDEX": {
+			"name": "コードインデックス統合",
+			"description": "パターンの重複排除、検索、スコアリングにベクトル検索を使用"
 		}
 	},
 	"promptCaching": {

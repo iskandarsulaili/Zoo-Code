@@ -837,6 +837,26 @@
 		"SELF_IMPROVING_QUESTION_EVALUATION": {
 			"name": "Avaluació de Preguntes",
 			"description": "Activar l'avaluació de preguntes d'usuari per millorar la qualitat i rellevància de les respostes"
+		},
+		"SELF_IMPROVING_PROMPT_QUALITY": {
+			"name": "Anàlisi de qualitat de prompts",
+			"description": "Analitza els patrons de qualitat dels prompts per a l'auto-millora"
+		},
+		"SELF_IMPROVING_TOOL_PREFERENCE": {
+			"name": "Retroalimentació de preferències d'eines",
+			"description": "Recull retroalimentació sobre preferències d'eines per a l'auto-millora"
+		},
+		"SELF_IMPROVING_SKILL_MERGE": {
+			"name": "Fusió d'habilitats",
+			"description": "Fusiona automàticament habilitats similars en habilitats paraigua"
+		},
+		"SELF_IMPROVING_PERSIST_COUNTS": {
+			"name": "Persistir recomptes de revisió",
+			"description": "Persisteix els recomptes de patrons i accions aprovats entre reinicis"
+		},
+		"SELF_IMPROVING_CODE_INDEX": {
+			"name": "Integració d'índex de codi",
+			"description": "Utilitza cerca vectorial per a deduplicació, recuperació i puntuació de patrons"
 		}
 	},
 	"promptCaching": {

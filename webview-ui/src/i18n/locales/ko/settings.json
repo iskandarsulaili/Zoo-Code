@@ -837,6 +837,26 @@
 		"SELF_IMPROVING_QUESTION_EVALUATION": {
 			"name": "질문 평가",
 			"description": "응답 품질과 관련성을 개선하기 위해 사용자 질문 평가 활성화"
+		},
+		"SELF_IMPROVING_PROMPT_QUALITY": {
+			"name": "프롬프트 품질 분석",
+			"description": "자기 개선을 위한 프롬프트 품질 패턴 분석"
+		},
+		"SELF_IMPROVING_TOOL_PREFERENCE": {
+			"name": "도구 선호도 피드백",
+			"description": "자기 개선을 위한 도구 선호도 피드백 수집"
+		},
+		"SELF_IMPROVING_SKILL_MERGE": {
+			"name": "스킬 병합",
+			"description": "유사한 스킬을 자동으로 통합 스킬로 병합"
+		},
+		"SELF_IMPROVING_PERSIST_COUNTS": {
+			"name": "검토 횟수 유지",
+			"description": "재시작 간 승인된 패턴 및 작업 횟수 유지"
+		},
+		"SELF_IMPROVING_CODE_INDEX": {
+			"name": "코드 인덱스 통합",
+			"description": "패턴 중복 제거, 검색 및 점수 매기기에 벡터 검색 사용"
 		}
 	},
 	"promptCaching": {

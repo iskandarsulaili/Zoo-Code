@@ -837,6 +837,26 @@
 		"SELF_IMPROVING_QUESTION_EVALUATION": {
 			"name": "Vraagevaluatie",
 			"description": "Evaluatie van gebruikersvragen inschakelen om de kwaliteit en relevantie van antwoorden te verbeteren"
+		},
+		"SELF_IMPROVING_PROMPT_QUALITY": {
+			"name": "Promptkwaliteitsanalyse",
+			"description": "Analyseer promptkwaliteitspatronen voor zelfverbetering"
+		},
+		"SELF_IMPROVING_TOOL_PREFERENCE": {
+			"name": "Toolvoorkeurfeedback",
+			"description": "Verzamel toolvoorkeurfeedback voor zelfverbetering"
+		},
+		"SELF_IMPROVING_SKILL_MERGE": {
+			"name": "Vaardigheden samenvoegen",
+			"description": "Voeg automatisch vergelijkbare vaardigheden samen tot overkoepelende vaardigheden"
+		},
+		"SELF_IMPROVING_PERSIST_COUNTS": {
+			"name": "Beoordelingstellingen behouden",
+			"description": "Behoud goedgekeurde patroon- en actietellingen bij herstart"
+		},
+		"SELF_IMPROVING_CODE_INDEX": {
+			"name": "Code-indexintegratie",
+			"description": "Gebruik vectorzoekopdracht voor patroondeduplicatie, ophalen en scoren"
 		}
 	},
 	"promptCaching": {
