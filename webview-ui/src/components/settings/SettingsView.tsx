@@ -526,6 +526,17 @@ const SettingsView = forwardRef<SettingsViewRef, SettingsViewProps>(({ onDone, t
 
 	useImperativeHandle(ref, () => ({ checkUnsaveChanges }), [checkUnsaveChanges])
 
+	// After save, sync cachedState with extensionState when no unsaved changes.
+	// This prevents the UI from reverting to initial mount values after save,
+	// since cachedState is initialized once on mount via useState(() => extensionState).
+	// When the extension processes the save and sends back updated state, this effect
+	// ensures cachedState stays in sync as long as the user hasn't started new edits.
+	useEffect(() => {
+		if (!isChangeDetected) {
+			setCachedState(extensionState)
+		}
+	}, [extensionState, isChangeDetected])
+
 	const onConfirmDialogResult = useCallback(
 		(confirm: boolean) => {
 			if (confirm) {
