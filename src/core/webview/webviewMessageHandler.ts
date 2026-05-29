@@ -761,7 +761,11 @@ export const webviewMessageHandler = async (
 						}
 					}
 
-					await provider.contextProxy.setValue(key as keyof RooCodeSettings, newValue)
+					try {
+						await provider.contextProxy.setValue(key as keyof RooCodeSettings, newValue)
+					} catch (error) {
+						console.error(`[Settings] Failed to save ${key}:`, error)
+					}
 				}
 
 				if (experimentsUpdated || selfImprovingSettingsUpdated) {

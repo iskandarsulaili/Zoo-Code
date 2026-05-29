@@ -241,6 +241,15 @@ const SettingsView = forwardRef<SettingsViewRef, SettingsViewProps>(({ onDone, t
 		}
 	}, [settingsImportedAt, extensionState])
 
+	// Re-sync cachedState when extensionState changes externally (e.g., CLI, another webview,
+	// extension restart) but only if user hasn't made local edits. This prevents stale UI
+	// when settings are changed from outside the settings view.
+	useEffect(() => {
+		if (!isChangeDetected && extensionState) {
+			setCachedState(extensionState)
+		}
+	}, [extensionState, isChangeDetected])
+
 	const setCachedStateField: SetCachedStateField<keyof ExtensionStateContextType> = useCallback((field, value) => {
 		setCachedState((prevState) => {
 			if (prevState[field] === value) {
@@ -484,6 +493,12 @@ const SettingsView = forwardRef<SettingsViewRef, SettingsViewProps>(({ onDone, t
 					selfImprovingAutoSkillsScope: selfImprovingAutoSkillsScope ?? "workspace",
 					experiments,
 					customSupportPrompts,
+					kaizenFrequency: kaizenFrequency ?? 5,
+					kaizenMiniGoal: kaizenMiniGoal ?? "",
+					kaizenLimit: kaizenLimit ?? 50,
+					kaizenAutoPush: kaizenAutoPush ?? true,
+					kaizenRemoteName: kaizenRemoteName ?? "origin",
+					kaizenCommitTemplate: kaizenCommitTemplate ?? "kaizen: {description}",
 				},
 			})
 
