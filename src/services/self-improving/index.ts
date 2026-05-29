@@ -26,6 +26,8 @@ export { InsightsEngine } from "./InsightsEngine"
 export { AutoModeOrchestrator } from "./AutoModeOrchestrator"
 export type { AutoModeConfig } from "./AutoModeOrchestrator"
 export { ModeFactoryService } from "./ModeFactoryService"
+export { VerificationEngine } from "./VerificationEngine"
+export type { VerificationResult, VerificationConfig } from "./VerificationEngine"
 
 export type { CodeIndexInfo, Logger, PromptContext, SelfImprovingManagerOptions, TaskEventInfo } from "./types"
 export type { MemoryBackend, MemoryBackendType } from "./MemoryBackend"

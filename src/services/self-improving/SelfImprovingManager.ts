@@ -56,7 +56,6 @@ export class SelfImprovingManager {
 	private readonly globalStoragePath: string
 	private readonly logger: Logger
 	private readonly getExperiments: () => Experiments | undefined
-	private readonly getCodeIndexInfo: SelfImprovingManagerOptions["getCodeIndexInfo"]
 	private readonly getMemoryBackend: SelfImprovingManagerOptions["getMemoryBackend"]
 	private readonly getAgentMemoryUrl: SelfImprovingManagerOptions["getAgentMemoryUrl"]
 	private readonly getSelfImprovingScope: SelfImprovingManagerOptions["getSelfImprovingScope"]
@@ -96,7 +95,6 @@ export class SelfImprovingManager {
 		this.globalStoragePath = options.globalStoragePath
 		this.logger = options.logger
 		this.getExperiments = options.getExperiments
-		this.getCodeIndexInfo = options.getCodeIndexInfo
 		this.getMemoryBackend = options.getMemoryBackend
 		this.getAgentMemoryUrl = options.getAgentMemoryUrl
 		this.getSelfImprovingScope = options.getSelfImprovingScope
@@ -359,6 +357,15 @@ export class SelfImprovingManager {
 				errorKey: info.errorKey,
 				success: info.success,
 			})
+
+			// Log code index stats if available
+			const codeIndexInfo = this.runtime.codeIndexAdapter.getInfo()
+			if (codeIndexInfo.available) {
+				this.logger.appendLine(
+					`[SelfImprovingManager] Code index available: ${codeIndexInfo.hits} hits`,
+				)
+			}
+
 			this.runtime.store.incrementToolIterations(
 				Math.max(1, info.toolIterationCount ?? info.toolNames?.length ?? 1),
 			)
@@ -584,6 +591,37 @@ export class SelfImprovingManager {
 		}
 	}
 
+	/**
+	 * Get code index search results for prompt enrichment.
+	 * Returns formatted string with top results when code index is available.
+	 */
+	async getCodeIndexSearchContext(query: string, limit: number = 5): Promise<string> {
+		if (!this.started || !this.runtime) {
+			return ""
+		}
+
+		try {
+			const adapter = this.runtime.codeIndexAdapter
+			if (!adapter.isAvailable()) {
+				return ""
+			}
+
+			const results = await adapter.search(query, limit)
+			if (results.length === 0) {
+				return ""
+			}
+
+			const lines = results.map(
+				(r, i) =>
+					`${i + 1}. ${r.filePath} (score: ${r.score.toFixed(3)})${r.line ? `:${r.line}` : ""}`,
+			)
+			return `\n## Code Index Results\n${lines.join("\n")}\n`
+		} catch (error) {
+			this.logError("getCodeIndexSearchContext error", error)
+			return ""
+		}
+	}
+
 	getPromptContextString(): string {
 		if (!this.started) {
 			return ""
@@ -775,7 +813,7 @@ export class SelfImprovingManager {
 					getAutoSkillsScope: () => this.resolveAutoSkillsScope(),
 					getExperiments: () => this.getExperiments(),
 				}),
-				codeIndexAdapter: new CodeIndexAdapter(this.logger, this.getCodeIndexInfo),
+				codeIndexAdapter: new CodeIndexAdapter(this.logger, this._codeIndexManager),
 			}
 		}
 

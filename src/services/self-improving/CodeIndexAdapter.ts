@@ -1,32 +1,47 @@
 import type { CodeIndexInfo, Logger } from "./types"
+import type { CodeIndexManager } from "../code-index/manager"
+
+export interface CodeSearchResult {
+	filePath: string
+	score: number
+	snippet?: string
+	line?: number
+}
 
 /**
- * CodeIndexAdapter - thin read-only adapter for code index integration.
+ * CodeIndexAdapter - real adapter bridging CodeIndexManager into the self-improving system.
  *
- * When code index is unavailable or disabled, returns a no-op payload
- * and the learning loop proceeds normally.
+ * Provides semantic search, file indexing, and availability checks
+ * backed by the full CodeIndexManager (Qdrant + embedders).
+ * Gracefully degrades when the manager is not initialized.
  */
 export class CodeIndexAdapter {
-	private readonly getCodeIndexInfo: (() => CodeIndexInfo) | undefined
+	private codeIndexManager: CodeIndexManager | undefined
 
 	constructor(
 		private readonly logger?: Logger,
-		getCodeIndexInfo?: () => CodeIndexInfo,
+		codeIndexManager?: CodeIndexManager,
 	) {
-		this.getCodeIndexInfo = getCodeIndexInfo
+		this.codeIndexManager = codeIndexManager
 	}
 
-	/**
-	 * Get current code index info.
-	 * Returns a safe default if the adapter is not configured.
-	 */
+	setCodeIndexManager(manager: CodeIndexManager): void {
+		this.codeIndexManager = manager
+	}
+
 	getInfo(): CodeIndexInfo {
-		if (!this.getCodeIndexInfo) {
+		if (!this.codeIndexManager) {
 			return { available: false, hits: 0 }
 		}
 
 		try {
-			return this.getCodeIndexInfo()
+			const status = this.codeIndexManager.getCurrentStatus()
+			const isIndexed =
+				status.systemStatus === "Indexed" || status.systemStatus === "Indexing"
+			return {
+				available: isIndexed,
+				hits: isIndexed ? 1 : 0,
+			}
 		} catch (error) {
 			this.logger?.appendLine(
 				`[CodeIndexAdapter] Error getting code index info: ${error instanceof Error ? error.message : String(error)}`,
@@ -35,10 +50,42 @@ export class CodeIndexAdapter {
 		}
 	}
 
-	/**
-	 * Check if code index is available and configured.
-	 */
 	isAvailable(): boolean {
 		return this.getInfo().available
+	}
+
+	async search(query: string, limit: number = 10): Promise<CodeSearchResult[]> {
+		if (!this.codeIndexManager) {
+			return []
+		}
+
+		try {
+			const results = await this.codeIndexManager.searchIndex(query)
+			return results.slice(0, limit).map((r) => ({
+				filePath: r.payload?.filePath ?? String(r.id),
+				score: r.score,
+				snippet: r.payload?.codeChunk,
+				line: r.payload?.startLine,
+			}))
+		} catch (error) {
+			this.logger?.appendLine(
+				`[CodeIndexAdapter] Search error: ${error instanceof Error ? error.message : String(error)}`,
+			)
+			return []
+		}
+	}
+
+	async startIndexing(): Promise<void> {
+		if (!this.codeIndexManager) {
+			return
+		}
+
+		try {
+			await this.codeIndexManager.startIndexing()
+		} catch (error) {
+			this.logger?.appendLine(
+				`[CodeIndexAdapter] Start indexing error: ${error instanceof Error ? error.message : String(error)}`,
+			)
+		}
 	}
 }

@@ -82,7 +82,6 @@ export interface SelfImprovingManagerOptions {
 	globalStoragePath: string
 	logger: Logger
 	getExperiments: () => Experiments | undefined
-	getCodeIndexInfo?: () => CodeIndexInfo
 	getMemoryBackend?: () => "builtin" | "agentmemory" | undefined
 	getAgentMemoryUrl?: () => string | undefined
 	getSelfImprovingScope?: () => SelfImprovingScope | undefined

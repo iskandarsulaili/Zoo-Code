@@ -249,17 +249,6 @@ export class ClineProvider
 			getAutoSkillsScope: () => this.getGlobalStateSafe("selfImprovingAutoSkillsScope"),
 			getWorkspacePath: () => this.currentWorkspacePath,
 			skillsManager: this.skillsManager,
-			getCodeIndexInfo: () => {
-				const manager = this.codeIndexManager
-				if (!manager) {
-					return { available: false, hits: 0 }
-				}
-
-				return {
-					available: true,
-					hits: 0, // Simplified - actual hit count would come from code index events
-				}
-			},
 		})
 
 		// Wire CustomModesManager into ModeFactoryService for auto mode creation
@@ -2846,6 +2835,11 @@ export class ClineProvider
 
 		// Update the current workspace manager reference
 		this.codeIndexManager = currentManager
+
+		// Wire CodeIndexManager into self-improving system for semantic search
+		if (currentManager) {
+			this.selfImprovingManager.setCodeIndexManager(currentManager)
+		}
 
 		// Subscribe to the new manager's progress updates if it exists
 		if (currentManager) {

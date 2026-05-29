@@ -28,6 +28,7 @@ export const experimentIds = [
 	"cascadeTracker",
 	"resilienceService",
 	"toolErrorHealer",
+	"verificationEngine",
 ] as const
 
 export const experimentIdsSchema = z.enum(experimentIds)
@@ -60,6 +61,7 @@ export const experimentsSchema = z.object({
 	cascadeTracker: z.boolean().optional(),
 	resilienceService: z.boolean().optional(),
 	toolErrorHealer: z.boolean().optional(),
+	verificationEngine: z.boolean().optional(),
 })
 
 export type Experiments = z.infer<typeof experimentsSchema>

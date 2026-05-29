@@ -260,7 +260,6 @@ describe("SelfImprovingManager", () => {
 			getSelfImprovingScope: () => selfImprovingScope,
 			getAutoSkillsScope: () => selfImprovingAutoSkillsScope,
 			getWorkspacePath: () => workspacePath,
-			getCodeIndexInfo: () => ({ available: true, hits: 2, topScore: 0.8 }),
 		})
 
 	beforeEach(() => {

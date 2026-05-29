@@ -22,6 +22,7 @@ export const EXPERIMENT_IDS = {
 	CASCADE_TRACKER: "cascadeTracker",
 	RESILIENCE_SERVICE: "resilienceService",
 	TOOL_ERROR_HEALER: "toolErrorHealer",
+	VERIFICATION_ENGINE: "verificationEngine",
 } as const satisfies Record<string, ExperimentId>
 
 type _AssertExperimentIds = AssertEqual<Equals<ExperimentId, Values<typeof EXPERIMENT_IDS>>>
@@ -54,6 +55,7 @@ export const experimentConfigsMap: Record<ExperimentKey, ExperimentConfig> = {
 	CASCADE_TRACKER: { enabled: false },
 	RESILIENCE_SERVICE: { enabled: false },
 	TOOL_ERROR_HEALER: { enabled: false },
+	VERIFICATION_ENGINE: { enabled: false },
 }
 
 export const experimentDefault = Object.fromEntries(
