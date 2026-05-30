@@ -42,7 +42,24 @@
         "language": "Idioma",
         "about": "Sobre Zoo Code",
         "skills": "Skills",
-        "kaizen": "KAIZEN"
+        "kaizen": "KAIZEN",
+        "providersDescription": "Configure API providers, models, and authentication credentials for AI model access.",
+        "modesDescription": "Define custom modes with specific instructions, tools, and model configurations for different tasks.",
+        "mcpDescription": "Manage Model Context Protocol servers that provide additional tools and resources to the agent.",
+        "worktreesDescription": "Manage Git worktrees for parallel development on multiple branches simultaneously.",
+        "skillsDescription": "Create and manage reusable skills that encapsulate contextual instructions and workflows.",
+        "autoApproveDescription": "Configure which actions the agent can perform automatically without requiring manual approval.",
+        "checkpointsDescription": "Configure automatic checkpoints during task execution for easy review and rollback.",
+        "notificationsDescription": "Configure sound effects and text-to-speech for task notifications and events.",
+        "contextManagementDescription": "Control what information is included in the AI's context window, affecting token usage and response quality.",
+        "terminalDescription": "Configure terminal integration settings including shell integration, output limits, and command execution behavior.",
+        "slashCommandsDescription": "Create reusable slash command shortcuts for frequently used prompts and workflows.",
+        "promptsDescription": "Configure support prompts used for quick actions like enhancing prompts, explaining code, and fixing issues.",
+        "uiDescription": "Customize the user interface behavior including message display and input preferences.",
+        "experimentalDescription": "Enable and configure experimental features that are in active development. These may change or be removed without notice.",
+        "languageDescription": "Change the display language for the extension interface.",
+        "aboutDescription": "View version information, community resources, telemetry settings, and debug options.",
+        "kaizenDescription": "Configure continuous improvement cycles that automatically enhance your codebase over time."
     },
     "about": {
         "bugReport": {
@@ -890,6 +907,20 @@
         "REQUIREMENTS_VERIFICATION": {
             "name": "Verificació de requisits",
             "description": "Seguiment i verificació de tots els requisits abans de completar"
+        },
+        "categories": {
+            "selfImproving": "Self-Improving",
+            "selfImprovingDescription": "Enable background learning from task outcomes to improve prompt guidance, tool preferences, and error avoidance over time.",
+            "verification": "Verification",
+            "verificationDescription": "Configure code quality verification and requirements tracking behavior.",
+            "memory": "Memory & Persistence",
+            "memoryDescription": "Configure memory backends and persistence settings for agent state across sessions.",
+            "ui": "UI & Editing",
+            "uiDescription": "Experimental UI and file editing features that change how the agent interacts with your workspace.",
+            "infrastructure": "Infrastructure & Reliability",
+            "infrastructureDescription": "Error prevention, resilience, and reliability services for production-grade agent operations.",
+            "tools": "Tools & Integrations",
+            "toolsDescription": "Additional tool integrations and capabilities for extending agent functionality."
         }
     },
     "promptCaching": {

@@ -27,22 +27,39 @@
     },
     "sections": {
         "providers": "Providers",
+        "providersDescription": "Configure API providers, models, and authentication credentials for AI model access.",
         "modes": "Modes",
+        "modesDescription": "Define custom modes with specific instructions, tools, and model configurations for different tasks.",
         "mcp": "MCP Servers",
+        "mcpDescription": "Manage Model Context Protocol servers that provide additional tools and resources to the agent.",
         "worktrees": "Worktrees",
+        "worktreesDescription": "Manage Git worktrees for parallel development on multiple branches simultaneously.",
         "skills": "Skills",
+        "skillsDescription": "Create and manage reusable skills that encapsulate contextual instructions and workflows.",
         "autoApprove": "Auto-Approve",
+        "autoApproveDescription": "Configure which actions the agent can perform automatically without requiring manual approval.",
         "checkpoints": "Checkpoints",
+        "checkpointsDescription": "Configure automatic checkpoints during task execution for easy review and rollback.",
         "notifications": "Notifications",
+        "notificationsDescription": "Configure sound effects and text-to-speech for task notifications and events.",
         "contextManagement": "Context",
+        "contextManagementDescription": "Control what information is included in the AI's context window, affecting token usage and response quality.",
         "terminal": "Terminal",
+        "terminalDescription": "Configure terminal integration settings including shell integration, output limits, and command execution behavior.",
         "slashCommands": "Slash Commands",
+        "slashCommandsDescription": "Create reusable slash command shortcuts for frequently used prompts and workflows.",
         "prompts": "Prompts",
+        "promptsDescription": "Configure support prompts used for quick actions like enhancing prompts, explaining code, and fixing issues.",
         "ui": "UI",
+        "uiDescription": "Customize the user interface behavior including message display and input preferences.",
         "experimental": "Experimental",
+        "experimentalDescription": "Enable and configure experimental features that are in active development. These may change or be removed without notice.",
         "language": "Language",
+        "languageDescription": "Change the display language for the extension interface.",
         "about": "About Zoo Code",
-        "kaizen": "KAIZEN"
+        "aboutDescription": "View version information, community resources, telemetry settings, and debug options.",
+        "kaizen": "KAIZEN",
+        "kaizenDescription": "Configure continuous improvement cycles that automatically enhance your codebase over time."
     },
     "about": {
         "bugReport": {
@@ -834,6 +851,20 @@
         }
     },
     "experimental": {
+        "categories": {
+            "selfImproving": "Self-Improving",
+            "selfImprovingDescription": "Enable background learning from task outcomes to improve prompt guidance, tool preferences, and error avoidance over time.",
+            "verification": "Verification",
+            "verificationDescription": "Configure code quality verification and requirements tracking behavior.",
+            "memory": "Memory & Persistence",
+            "memoryDescription": "Configure memory backends and persistence settings for agent state across sessions.",
+            "ui": "UI & Editing",
+            "uiDescription": "Experimental UI and file editing features that change how the agent interacts with your workspace.",
+            "infrastructure": "Infrastructure & Reliability",
+            "infrastructureDescription": "Error prevention, resilience, and reliability services for production-grade agent operations.",
+            "tools": "Tools & Integrations",
+            "toolsDescription": "Additional tool integrations and capabilities for extending agent functionality."
+        },
         "DIFF_STRATEGY_UNIFIED": {
             "name": "Use experimental unified diff strategy",
             "description": "Enable the experimental unified diff strategy. This strategy might reduce the number of retries caused by model errors but may cause unexpected behavior or incorrect edits. Only enable if you understand the risks and are willing to carefully review all changes."

@@ -121,6 +121,27 @@ function createTranscriptRecallMock() {
 	}
 }
 
+vi.mock("../TaskPatternStore", () => ({
+	TaskPatternStore: vi.fn().mockImplementation((_baseDir: string, _logger: any) => ({
+		initialize: vi.fn().mockResolvedValue(undefined),
+		recordTask: vi.fn(),
+		findSimilarTasks: vi.fn().mockReturnValue([]),
+		getAllPatterns: vi.fn().mockReturnValue([]),
+		pruneOldPatterns: vi.fn(),
+		flush: vi.fn().mockResolvedValue(undefined),
+	})),
+}))
+
+vi.mock("../ModeFactoryService", () => ({
+	ModeFactoryService: vi.fn().mockImplementation(() => ({
+		setCustomModesManager: vi.fn(),
+		setPatternProvider: vi.fn(),
+		recreateModes: vi.fn().mockResolvedValue([]),
+		createModeFromPattern: vi.fn().mockResolvedValue(null),
+		createModesFromPatterns: vi.fn().mockResolvedValue([]),
+	})),
+}))
+
 vi.mock("../LearningStore", () => ({
 	LearningStore: vi.fn().mockImplementation((baseDir: string) => {
 		const store = createStoreMock()

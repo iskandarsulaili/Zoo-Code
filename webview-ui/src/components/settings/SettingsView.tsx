@@ -828,7 +828,9 @@ const SettingsView = forwardRef<SettingsViewRef, SettingsViewProps>(({ onDone, t
 						{/* Providers Section */}
 						{renderTab === "providers" && (
 							<div>
-								<SectionHeader>{t("settings:sections.providers")}</SectionHeader>
+								<SectionHeader description={t("settings:sections.providersDescription")}>
+									{t("settings:sections.providers")}
+								</SectionHeader>
 
 								<Section>
 									<ApiConfigManager
@@ -1018,7 +1020,9 @@ const SettingsView = forwardRef<SettingsViewRef, SettingsViewProps>(({ onDone, t
 						{/* KAIZEN Section */}
 						{renderTab === "kaizen" && (
 							<div>
-								<SectionHeader>{t("settings:sections.kaizen")}</SectionHeader>
+								<SectionHeader description={t("settings:sections.kaizenDescription")}>
+									{t("settings:sections.kaizen")}
+								</SectionHeader>
 								<Section>
 									<div className="space-y-4">
 										<div className="flex items-center justify-between">
