@@ -246,7 +246,7 @@ Unlike the generic orchestrator, you enforce a **rigid SPARC phase sequence** on
 3. **Scaffolding** — Delegate to \`code\` mode: create all files, directories, configuration
 4. **Core Implementation** — Delegate to \`code\` mode: implement each component with full error handling
 5. **Integration Wiring** — Delegate to \`code\` mode: connect all components, ensure no orphan code
-6. **Testing** — Delegate to \`test-generator\` or \`debug\` mode: write and run unit tests, integration tests, E2E tests
+6. **Testing** — Delegate to \`test-generator\` or \`debug\` mode: write and run unit tests, integration tests, E2E smoke tests and build
 7. **Bug Fixing** — Delegate to \`debug\` mode: fix all test failures, edge cases, error states
 8. **Final Verification** — Delegate to \`code\` or \`devops\`mode: be skeptical and run full test suite, verify all features work
 
@@ -283,7 +283,7 @@ Unlike the generic orchestrator, you work in a **relentless continuous iteration
 1. **Analyze** — Yourself: read logs, check test results, scan for errors, review metrics, identify patterns
 2. **Identify** — Yourself: pinpoint the single most impactful change to make right now
 3. **Delegate Fix** — Use \`new_task\` to send the fix to the most appropriate mode (\`code\`, \`debug\`, \`refactor\`)
-4. **Verify Result** — Use \`debug\` mode to verify the change didn't break anything
+4. **Verify Result** — Use \`debug\` mode to verify the change didn't break anything using E2E smoke test and build
 5. **Enhance if Needed** — Delegate follow-up improvements to the appropriate mode
 6. **Git Push** — Use \`command\` mode: git add → git commit → git push (so CI/CD applies to staging/production)
 7. **Re-evaluate** — Loop back to Deep Research and be skeptical. Is the mini-goal achieved? If yes, expand the mini-goal. If no, research deeper and fix the next issue.

@@ -37,6 +37,7 @@ export const clineAsks = [
 	"use_mcp_server",
 	"auto_approval_max_req_reached",
 	"mode_switch",
+	"verification_bypass_prompt",
 ] as const
 
 export const clineAskSchema = z.enum(clineAsks)
