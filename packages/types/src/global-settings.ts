@@ -201,6 +201,12 @@ export const globalSettingsSchema = z.object({
 	rateLimitSeconds: z.number().optional(),
 	experiments: experimentsSchema.optional(),
 
+	/**
+	 * List of mode slugs that should skip code quality verification in AttemptCompletionTool.
+	 * Default: ["research"]
+	 */
+	lenientModes: z.array(z.string()).optional(),
+
 	codebaseIndexModels: codebaseIndexModelsSchema.optional(),
 	codebaseIndexConfig: codebaseIndexConfigSchema.optional(),
 

@@ -421,6 +421,12 @@ ${bulletList}
 	 * - It has high confidence (>= 0.7) and frequency (>= 3)
 	 * - It involves domain-specific tool combinations
 	 * - The pattern summary suggests a reusable domain (e.g., "react", "api", "test", "deploy")
+	 *
+	 * Enhanced with:
+	 * - Flexible domain detection via tool usage patterns + task description analysis
+	 * - Versatility scoring to measure cross-domain applicability
+	 * - Cross-domain applicability notes in skill content
+	 * - High-versatility skills promoted to global scope
 	 */
 	private generateSpecializedSkillActions(patterns: LearnedPattern[], now: number): ImprovementAction[] {
 		const actions: ImprovementAction[] = []
@@ -430,7 +436,7 @@ ${bulletList}
 			return actions
 		}
 
-		const source = this.getAutoSkillsScope() === "global" ? "global" : "project"
+		const defaultSource = this.getAutoSkillsScope() === "global" ? "global" : "project"
 
 		for (const pattern of patterns) {
 			if (pattern.state !== "active") {
@@ -447,11 +453,19 @@ ${bulletList}
 				continue
 			}
 
-			// Detect domain from pattern summary and tool names
-			const domain = this.detectSpecializedDomain(pattern.summary, toolNames)
-			if (!domain) {
+			// Detect domain from pattern summary and tool names — flexible approach
+			const domainResult = this.detectSpecializedDomain(pattern.summary, toolNames)
+			if (!domainResult) {
 				continue
 			}
+
+			const { domain, crossDomainPatterns } = domainResult
+
+			// Compute versatility score — how broadly applicable this skill is
+			const versatilityScore = this.computeVersatilityScore(domain, toolNames, pattern)
+
+			// High-versatility skills should be global; low-versatility stay project-local
+			const source = versatilityScore >= 0.7 ? "global" : defaultSource
 
 			const skillName = this.buildSpecializedSkillName(domain, toolNames)
 			const skillId = this.buildSkillId(skillName, source)
@@ -462,7 +476,15 @@ ${bulletList}
 			}
 
 			const description = `Specialized skill for ${domain}: ${pattern.summary}`
-			const instructions = this.buildSpecializedSkillContent(skillName, description, domain, toolNames, pattern)
+			const instructions = this.buildSpecializedSkillContent(
+				skillName,
+				description,
+				domain,
+				toolNames,
+				pattern,
+				versatilityScore,
+				crossDomainPatterns,
+			)
 
 			actions.push({
 				id: crypto.randomUUID(),
@@ -478,6 +500,10 @@ ${bulletList}
 					tools: toolNames,
 					confidence: pattern.confidenceScore ?? 0.7,
 					patternId: pattern.id,
+					// New metadata for cross-domain versatility
+					domains: this.inferRelatedDomains(domain, toolNames, pattern),
+					versatilityScore,
+					crossDomainPatterns,
 				},
 				timestamp: now,
 			})
@@ -487,42 +513,194 @@ ${bulletList}
 	}
 
 	/**
+	 * Compute a versatility score (0-1) measuring how broadly applicable
+	 * a skill is across different domains.
+	 *
+	 * Factors:
+	 * - Tool diversity: more distinct tools → higher versatility
+	 * - Domain generality: generic domains (e.g., "code-review", "documentation")
+	 *   score higher than specific ones (e.g., "react-component")
+	 * - Pattern frequency: higher frequency suggests broader applicability
+	 * - Mode diversity: patterns seen across multiple modes are more versatile
+	 */
+	private computeVersatilityScore(domain: string, toolNames: string[], pattern: LearnedPattern): number {
+		let score = 0.3 // baseline
+
+		// Factor 1: Tool diversity (0-0.3)
+		const toolDiversity = Math.min(1, toolNames.length / 5) * 0.3
+		score += toolDiversity
+
+		// Factor 2: Domain generality (0-0.2)
+		// Generic domains are more versatile than framework-specific ones
+		const genericDomains = new Set([
+			"code-review", "documentation", "security-audit", "deployment-pipeline",
+		])
+		if (genericDomains.has(domain)) {
+			score += 0.2
+		} else if (domain.startsWith("database-") || domain.startsWith("api-")) {
+			score += 0.1 // Semi-generic
+		}
+		// Framework-specific domains (react-component, test-suite) get no bonus
+
+		// Factor 3: Frequency bonus (0-0.1)
+		const freq = pattern.frequency ?? 0
+		score += Math.min(0.1, freq * 0.02)
+
+		// Factor 4: Mode diversity (0-0.1)
+		const modes = pattern.context.modes ?? []
+		if (modes.length > 1) {
+			score += 0.1
+		} else if (modes.length === 1) {
+			score += 0.05
+		}
+
+		return Math.min(1, Math.round(score * 100) / 100)
+	}
+
+	/**
+	 * Infer related domains that this skill could apply to.
+	 * Returns an array of domain strings beyond the primary domain.
+	 */
+	private inferRelatedDomains(primaryDomain: string, toolNames: string[], pattern: LearnedPattern): string[] {
+		const related: string[] = []
+		const lowerSummary = pattern.summary.toLowerCase()
+		const allTools = toolNames.map((t) => t.toLowerCase()).join(" ")
+		const searchText = `${lowerSummary} ${allTools}`
+
+		// Cross-domain pattern map: tool/term → secondary domains
+		const crossDomainTriggers: Array<{ pattern: RegExp; domain: string }> = [
+			{ pattern: /\b(read|write|file|fs|path)\b/, domain: "file-operations" },
+			{ pattern: /\b(config|env|setting|option)\b/, domain: "configuration" },
+			{ pattern: /\b(log|debug|trace|error)\b/, domain: "debugging" },
+			{ pattern: /\b(validate|check|verify|assert)\b/, domain: "validation" },
+			{ pattern: /\b(format|lint|style|prettier|eslint)\b/, domain: "code-formatting" },
+			{ pattern: /\b(git|commit|branch|merge|pr|pull)\b/, domain: "version-control" },
+			{ pattern: /\b(build|compile|bundle|webpack|vite|tsc)\b/, domain: "build-tooling" },
+			{ pattern: /\b(test|spec|mock|stub|fixture)\b/, domain: "testing" },
+			{ pattern: /\b(doc|readme|comment|annotation)\b/, domain: "documentation" },
+			{ pattern: /\b(perf|performance|optimize|profile)\b/, domain: "performance" },
+		]
+
+		for (const { pattern, domain } of crossDomainTriggers) {
+			if (pattern.test(searchText) && domain !== primaryDomain) {
+				related.push(domain)
+			}
+		}
+
+		// Deduplicate and limit
+		return [...new Set(related)].slice(0, 5)
+	}
+
+	/**
 	 * Detect a specialized domain from pattern summary and tool names.
 	 * Returns a domain string (e.g., "react-component", "api-endpoint", "test-suite")
 	 * or undefined if no specialized domain is detected.
+	 *
+	 * Enhanced with:
+	 * - Cross-domain pattern analysis: returns both primary domain and cross-domain patterns
+	 * - Tool-based domain inference: analyzes tool names for domain hints
+	 * - Summary-based domain inference: analyzes task descriptions for domain hints
 	 */
-	private detectSpecializedDomain(summary: string, toolNames: string[]): string | undefined {
+	private detectSpecializedDomain(
+		summary: string,
+		toolNames: string[],
+	): { domain: string; crossDomainPatterns: string[] } | undefined {
 		const lowerSummary = summary.toLowerCase()
 		const allTools = toolNames.map((t) => t.toLowerCase()).join(" ")
+		const searchText = `${lowerSummary} ${allTools}`
 
 		// Domain detection rules — ordered by specificity
-		const domains: Array<{ pattern: RegExp; domain: string }> = [
+		// Each rule now includes cross-domain pattern tags
+		const domains: Array<{ pattern: RegExp; domain: string; crossTags: string[] }> = [
 			// React/UI component building
-			{ pattern: /\b(react|component|jsx|tsx|ui|component)\b/, domain: "react-component" },
+			{
+				pattern: /\b(react|component|jsx|tsx|ui|component)\b/,
+				domain: "react-component",
+				crossTags: ["ui-development", "frontend", "component-architecture"],
+			},
 			// API endpoint creation
-			{ pattern: /\b(api|endpoint|route|rest|graphql|express|fastify)\b/, domain: "api-endpoint" },
+			{
+				pattern: /\b(api|endpoint|route|rest|graphql|express|fastify)\b/,
+				domain: "api-endpoint",
+				crossTags: ["backend", "http", "data-exchange", "service-integration"],
+			},
 			// Test writing
-			{ pattern: /\b(test|spec|vitest|jest|mocha|tdd|assert)\b/, domain: "test-suite" },
+			{
+				pattern: /\b(test|spec|vitest|jest|mocha|tdd|assert)\b/,
+				domain: "test-suite",
+				crossTags: ["quality-assurance", "verification", "regression-prevention"],
+			},
 			// Database operations
-			{ pattern: /\b(db|database|sql|query|schema|migration|postgres|mongodb)\b/, domain: "database-operation" },
+			{
+				pattern: /\b(db|database|sql|query|schema|migration|postgres|mongodb)\b/,
+				domain: "database-operation",
+				crossTags: ["data-persistence", "data-modeling", "storage"],
+			},
 			// Deployment/CI
-			{ pattern: /\b(deploy|ci|cd|pipeline|docker|kubernetes|k8s)\b/, domain: "deployment-pipeline" },
+			{
+				pattern: /\b(deploy|ci|cd|pipeline|docker|kubernetes|k8s)\b/,
+				domain: "deployment-pipeline",
+				crossTags: ["infrastructure", "release-management", "automation"],
+			},
 			// Code review
-			{ pattern: /\b(review|audit|lint|quality|refactor)\b/, domain: "code-review" },
+			{
+				pattern: /\b(review|audit|lint|quality|refactor)\b/,
+				domain: "code-review",
+				crossTags: ["quality-assurance", "maintainability", "best-practices"],
+			},
 			// Documentation
-			{ pattern: /\b(doc|readme|markdown|documentation|api-doc)\b/, domain: "documentation" },
+			{
+				pattern: /\b(doc|readme|markdown|documentation|api-doc)\b/,
+				domain: "documentation",
+				crossTags: ["knowledge-sharing", "onboarding", "api-reference"],
+			},
 			// Security
-			{ pattern: /\b(security|auth|oauth|jwt|vulnerability|audit)\b/, domain: "security-audit" },
+			{
+				pattern: /\b(security|auth|oauth|jwt|vulnerability|audit)\b/,
+				domain: "security-audit",
+				crossTags: ["compliance", "threat-modeling", "access-control"],
+			},
 		]
 
-		const searchText = `${lowerSummary} ${allTools}`
-		for (const { pattern, domain } of domains) {
+		for (const { pattern, domain, crossTags } of domains) {
 			if (pattern.test(searchText)) {
-				return domain
+				// Also scan for additional cross-domain patterns from the summary
+				const additionalPatterns = this.inferCrossDomainPatterns(searchText, domain)
+				const allPatterns = [...new Set([...crossTags, ...additionalPatterns])]
+				return { domain, crossDomainPatterns: allPatterns }
 			}
 		}
 
 		return undefined
+	}
+
+	/**
+	 * Infer cross-domain patterns from search text beyond the primary domain.
+	 * Returns pattern tags that describe how this skill applies across domains.
+	 */
+	private inferCrossDomainPatterns(searchText: string, primaryDomain: string): string[] {
+		const patterns: string[] = []
+
+		const crossPatterns: Array<{ pattern: RegExp; tag: string }> = [
+			{ pattern: /\b(read|write|file|fs|path)\b/, tag: "file-operations" },
+			{ pattern: /\b(config|env|setting|option)\b/, tag: "configuration-management" },
+			{ pattern: /\b(log|debug|trace|error)\b/, tag: "observability" },
+			{ pattern: /\b(validate|check|verify|assert)\b/, tag: "validation" },
+			{ pattern: /\b(format|lint|style|prettier|eslint)\b/, tag: "code-quality" },
+			{ pattern: /\b(git|commit|branch|merge|pr|pull)\b/, tag: "version-control" },
+			{ pattern: /\b(build|compile|bundle|webpack|vite|tsc)\b/, tag: "build-tooling" },
+			{ pattern: /\b(perf|performance|optimize|profile)\b/, tag: "performance-optimization" },
+			{ pattern: /\b(async|await|promise|callback|stream)\b/, tag: "async-patterns" },
+			{ pattern: /\b(error|exception|throw|catch|try)\b/, tag: "error-handling" },
+		]
+
+		for (const { pattern, tag } of crossPatterns) {
+			if (pattern.test(searchText) && tag !== primaryDomain) {
+				patterns.push(tag)
+			}
+		}
+
+		return patterns
 	}
 
 	/**
@@ -541,6 +719,11 @@ ${bulletList}
 	 * Build full SKILL.md instructions body for a specialized skill.
 	 * Returns only the markdown body (without frontmatter — frontmatter is
 	 * added by ActionExecutor).
+	 *
+	 * Enhanced with:
+	 * - Cross-domain applicability notes
+	 * - Versatility score display
+	 * - Related domains section
 	 */
 	private buildSpecializedSkillContent(
 		skillName: string,
@@ -548,6 +731,8 @@ ${bulletList}
 		domain: string,
 		toolNames: string[],
 		pattern: LearnedPattern,
+		versatilityScore: number,
+		crossDomainPatterns: string[],
 	): string {
 		const title = skillName
 			.split("-")
@@ -556,6 +741,19 @@ ${bulletList}
 
 		const toolList = toolNames.map((t) => `- \`${t}\``).join("\n")
 		const confidencePct = ((pattern.confidenceScore ?? 0) * 100).toFixed(0)
+		const versatilityPct = (versatilityScore * 100).toFixed(0)
+
+		const crossDomainSection =
+			crossDomainPatterns.length > 0
+				? `## Cross-Domain Applicability
+
+This skill's patterns are applicable beyond the primary **${domain}** domain. The following cross-domain patterns were detected:
+
+${crossDomainPatterns.map((p) => `- \`${p}\``).join("\n")}
+
+When working in these related areas, consider adapting the core workflow from this skill.
+`
+				: ""
 
 		return `# ${title}
 
@@ -583,6 +781,18 @@ ${toolList}
 ## Preferred Tools
 
 ${toolList}
+
+${crossDomainSection}
+## Versatility
+
+This skill has a versatility score of **${versatilityPct}%** — indicating how broadly applicable it is across different domains and contexts.
+
+| Factor | Contribution |
+|--------|-------------|
+| Tool diversity | ${toolNames.length} distinct tools |
+| Domain generality | ${domain} |
+| Pattern frequency | ${pattern.frequency} occurrences |
+| Mode diversity | ${(pattern.context.modes ?? []).length > 0 ? `${(pattern.context.modes ?? []).length} mode(s)` : "any mode"} |
 
 ## Confidence
 

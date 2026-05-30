@@ -264,9 +264,11 @@ export class ResilienceService {
 	}
 
 	/**
-	 * Generate a recovery context block based on the classified error and original message.
-	 * For MODEL_THOUGHT_FAILURE with recoveryAction "break_down_task", queries the code index
-	 * for relevant context and injects a contextual guidance block.
+	 * Generate a recovery context block based on the classified error, original message,
+	 * and recent conversation history.
+	 *
+	 * Uses actual recent messages (last user req + last assistant res) to build a
+	 * contextual task summary, then queries the code index for relevant context.
 	 * Non-blocking — returns original message on any error or when no enrichment is needed.
 	 * Gated behind recoveryContext experiment flag.
 	 */
@@ -274,6 +276,7 @@ export class ResilienceService {
 		classifiedError: ClassifiedError,
 		originalMessage: string,
 		experiments?: Record<string, boolean>,
+		recentMessages?: string[],
 	): Promise<string> {
 		// Only enrich for MODEL_THOUGHT_FAILURE with break_down_task recovery
 		if (
@@ -288,19 +291,25 @@ export class ResilienceService {
 			return originalMessage
 		}
 
+		// Build task summary from recent conversation messages
+		const taskSummary = this.buildTaskSummary(recentMessages)
+
+		// Use task summary as the search query for code index (more contextual than originalMessage)
+		const searchQuery = taskSummary || originalMessage
+
 		// Try to enrich with code index context
 		if (this.codeIndexAdapter?.isAvailable()) {
 			try {
-				const results = await this.codeIndexAdapter.searchVectorStore(originalMessage)
+				const results = await this.codeIndexAdapter.searchVectorStore(searchQuery)
 				if (results && results.length > 0) {
 					const contextLines = results.map((r) => this.formatSearchResult(r))
 					const contextBlock = [
-						"[Context Recovery] The previous attempt failed. Here is relevant context from the codebase to help:",
+						`[Context Recovery] You were working on: ${taskSummary || "a task that failed"}. Here is relevant code context:`,
 						...contextLines,
 					].join("\n")
 
 					this.logger.appendLine(
-						`[Resilience] Recovery context generated: ${results.length} code index results`,
+						`[Resilience] Recovery context generated: ${results.length} code index results (taskSummary: "${(taskSummary || originalMessage).slice(0, 80)}")`,
 					)
 					return `${originalMessage}\n\n${contextBlock}`
 				}
@@ -312,10 +321,54 @@ export class ResilienceService {
 			}
 		}
 
-		// Fallback: inject a simpler contextual guidance block without code index
-		const fallbackGuidance =
-			"[Context Recovery] The previous attempt failed. Consider breaking the task into smaller, more focused steps. Try using a simpler approach or different tool."
+		// Fallback: inject contextual guidance referencing the actual task
+		const fallbackGuidance = taskSummary
+			? `[Context Recovery] You were working on: ${taskSummary}. Consider breaking this into smaller, more focused steps. Try using a simpler approach or different tool.`
+			: "[Context Recovery] The previous attempt failed. Consider breaking the task into smaller, more focused steps. Try using a simpler approach or different tool."
 		return `${originalMessage}\n\n${fallbackGuidance}`
+	}
+
+	/**
+	 * Build a concise task summary from recent conversation messages.
+	 * Extracts the last user request and last assistant response to describe
+	 * what the agent was trying to do when it failed.
+	 */
+	private buildTaskSummary(recentMessages?: string[]): string {
+		if (!recentMessages || recentMessages.length === 0) {
+			return ""
+		}
+
+		// Find the last user message (request) and last assistant message (response)
+		let lastUserReq = ""
+		let lastAssistantRes = ""
+
+		for (const msg of recentMessages) {
+			// Simple heuristic: user messages are typically requests/instructions
+			if (msg.startsWith("[USER]")) {
+				lastUserReq = msg.slice(6).trim()
+			} else if (msg.startsWith("[ASSISTANT]")) {
+				lastAssistantRes = msg.slice(11).trim()
+			}
+		}
+
+		// Build summary from the last user request
+		if (lastUserReq) {
+			// Truncate to first 200 chars for a concise summary
+			const truncated = lastUserReq.length > 200
+				? lastUserReq.slice(0, 200) + "..."
+				: lastUserReq
+			return truncated
+		}
+
+		// Fallback to assistant response if no user message found
+		if (lastAssistantRes) {
+			const truncated = lastAssistantRes.length > 200
+				? lastAssistantRes.slice(0, 200) + "..."
+				: lastAssistantRes
+			return truncated
+		}
+
+		return ""
 	}
 
 	getStatus(): Record<string, any> {

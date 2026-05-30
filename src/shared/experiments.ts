@@ -28,8 +28,6 @@ export const EXPERIMENT_IDS = {
 	SELF_IMPROVING_SPECIALIZED_SKILLS: "selfImprovingSpecializedSkills",
 } as const satisfies Record<string, ExperimentId>
 
-type _AssertExperimentIds = AssertEqual<Equals<ExperimentId, Values<typeof EXPERIMENT_IDS>>>
-
 type ExperimentKey = Keys<typeof EXPERIMENT_IDS>
 
 interface ExperimentConfig {

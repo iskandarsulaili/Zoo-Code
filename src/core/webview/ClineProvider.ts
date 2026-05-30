@@ -255,6 +255,10 @@ export class ClineProvider
 		// Wire CustomModesManager into ModeFactoryService for auto mode creation
 		this.selfImprovingManager.setCustomModesManager(this.customModesManager)
 
+		// Wire API configuration for LLM-dependent scoring (hybrid scoring)
+		const apiConfig = this.contextProxy.getProviderSettings()
+		this.selfImprovingManager.setApiConfiguration(apiConfig ?? undefined)
+
 		// Initialize TrustService for auto-approval (experiment-gated)
 		this.trustService = new TrustService(
 			{
@@ -2257,6 +2261,12 @@ export class ClineProvider
 			selfImprovingScope,
 			selfImprovingAutoSkillsScope,
 			lockApiConfigAcrossModes,
+			kaizenFrequency,
+			kaizenMiniGoal,
+			kaizenLimit,
+			kaizenAutoPush,
+			kaizenRemoteName,
+			kaizenCommitTemplate,
 		} = await this.getState()
 
 		let cloudOrganizations: CloudOrganizationMembership[] = []
@@ -2439,6 +2449,12 @@ export class ClineProvider
 			agentMemoryUrl,
 			selfImprovingScope,
 			selfImprovingAutoSkillsScope,
+			kaizenFrequency,
+			kaizenMiniGoal,
+			kaizenLimit,
+			kaizenAutoPush,
+			kaizenRemoteName,
+			kaizenCommitTemplate,
 			openAiCodexIsAuthenticated: await (async () => {
 				try {
 					const { openAiCodexOAuthManager } = await import("../../integrations/openai-codex/oauth")
@@ -2639,6 +2655,12 @@ export class ClineProvider
 			agentMemoryUrl: stateValues.agentMemoryUrl,
 			selfImprovingScope: stateValues.selfImprovingScope,
 			selfImprovingAutoSkillsScope: stateValues.selfImprovingAutoSkillsScope,
+			kaizenFrequency: stateValues.kaizenFrequency,
+			kaizenMiniGoal: stateValues.kaizenMiniGoal,
+			kaizenLimit: stateValues.kaizenLimit,
+			kaizenAutoPush: stateValues.kaizenAutoPush,
+			kaizenRemoteName: stateValues.kaizenRemoteName,
+			kaizenCommitTemplate: stateValues.kaizenCommitTemplate,
 		}
 	}
 

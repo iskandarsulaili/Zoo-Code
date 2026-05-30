@@ -1,8 +1,6 @@
 // npx vitest run src/shared/__tests__/experiments.spec.ts
 
-import type { ExperimentId } from "@roo-code/types"
-
-import { EXPERIMENT_IDS, experimentConfigsMap, experiments as Experiments } from "../experiments"
+import { EXPERIMENT_IDS, experimentConfigsMap, experiments } from "../experiments"
 
 describe("experiments", () => {
 	describe("PREVENT_FOCUS_DISRUPTION", () => {
@@ -34,7 +32,7 @@ describe("experiments", () => {
 
 	describe("isEnabled", () => {
 		it("returns false when experiment is not enabled", () => {
-			const experiments: Record<ExperimentId, boolean> = {
+			const config = {
 				preventFocusDisruption: false,
 				imageGeneration: false,
 				runSlashCommand: false,
@@ -61,11 +59,11 @@ describe("experiments", () => {
 				recoveryContext: false,
 				selfImprovingSpecializedSkills: false,
 			}
-			expect(Experiments.isEnabled(experiments, EXPERIMENT_IDS.PREVENT_FOCUS_DISRUPTION)).toBe(false)
+			expect(experiments.isEnabled(config, EXPERIMENT_IDS.PREVENT_FOCUS_DISRUPTION)).toBe(false)
 		})
 
 		it("returns true when experiment is enabled", () => {
-			const experiments: Record<ExperimentId, boolean> = {
+			const config = {
 				preventFocusDisruption: true,
 				imageGeneration: false,
 				runSlashCommand: false,
@@ -92,11 +90,11 @@ describe("experiments", () => {
 				recoveryContext: false,
 				selfImprovingSpecializedSkills: false,
 			}
-			expect(Experiments.isEnabled(experiments, EXPERIMENT_IDS.PREVENT_FOCUS_DISRUPTION)).toBe(true)
+			expect(experiments.isEnabled(config, EXPERIMENT_IDS.PREVENT_FOCUS_DISRUPTION)).toBe(true)
 		})
 
 		it("returns false when experiment is not in the map", () => {
-			const experiments: Record<ExperimentId, boolean> = {
+			const config = {
 				preventFocusDisruption: false,
 				imageGeneration: false,
 				runSlashCommand: false,
@@ -123,7 +121,7 @@ describe("experiments", () => {
 				recoveryContext: false,
 				selfImprovingSpecializedSkills: false,
 			}
-			expect(Experiments.isEnabled(experiments, "nonExistentExperiment" as ExperimentId)).toBeUndefined()
+			expect(experiments.isEnabled(config, "nonExistentExperiment" as any)).toBeUndefined()
 		})
 	})
 })

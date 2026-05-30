@@ -313,6 +313,13 @@ const SettingsView = forwardRef<SettingsViewRef, SettingsViewProps>(({ onDone, t
 		})
 	}, [])
 
+	const setLenientModes = useCallback((modes: string[]) => {
+		setCachedState((prevState) => {
+			setChangeDetected(true)
+			return { ...prevState, experiments: { ...prevState.experiments, lenientModes: modes } }
+		})
+	}, [])
+
 	const setTelemetrySetting = useCallback((setting: TelemetrySetting) => {
 		setCachedState((prevState) => {
 			if (prevState.telemetrySetting === setting) {
@@ -995,6 +1002,7 @@ const SettingsView = forwardRef<SettingsViewRef, SettingsViewProps>(({ onDone, t
 								setAgentMemoryUrl={setAgentMemoryUrl}
 								setSelfImprovingScope={setSelfImprovingScope}
 								setSelfImprovingAutoSkillsScope={setSelfImprovingAutoSkillsScope}
+								setLenientModes={setLenientModes}
 							/>
 						)}
 

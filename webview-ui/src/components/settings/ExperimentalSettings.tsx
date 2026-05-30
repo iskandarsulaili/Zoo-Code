@@ -36,6 +36,7 @@ type ExperimentalSettingsProps = HTMLAttributes<HTMLDivElement> & {
 	setAgentMemoryUrl?: (url: string) => void
 	setSelfImprovingScope?: (scope: "workspace" | "global") => void
 	setSelfImprovingAutoSkillsScope?: (scope: "workspace" | "global") => void
+	setLenientModes?: (modes: string[]) => void
 }
 
 export const ExperimentalSettings = ({
@@ -57,6 +58,7 @@ export const ExperimentalSettings = ({
 	setAgentMemoryUrl,
 	setSelfImprovingScope,
 	setSelfImprovingAutoSkillsScope,
+	setLenientModes,
 	className,
 	...props
 }: ExperimentalSettingsProps) => {
@@ -547,7 +549,27 @@ export const ExperimentalSettings = ({
 							</SearchableSetting>
 						)
 					})}
-			</Section>
-		</div>
-	)
-}
+
+					{/* Lenient Modes */}
+					<SearchableSetting
+						settingId="experimental-lenient-modes"
+						section="experimental"
+						label="Lenient Modes"
+						description="Modes that skip code quality verification on completion (comma-separated mode slugs)">
+						<Input
+							value={(experiments.lenientModes as string[] | undefined)?.join(", ") ?? "research"}
+							onChange={(e) => {
+								const modes = e.target.value
+									.split(",")
+									.map((m) => m.trim())
+									.filter(Boolean)
+								setLenientModes?.(modes)
+							}}
+							placeholder="research, ask, architect"
+							data-testid="experimental-lenient-modes-input"
+						/>
+					</SearchableSetting>
+				</Section>
+			</div>
+		)
+	}

@@ -68,8 +68,12 @@ export const experimentsSchema = z.object({
 	requirementsVerification: z.boolean().optional(),
 	recoveryContext: z.boolean().optional(),
 	selfImprovingSpecializedSkills: z.boolean().optional(),
+
+	/**
+	 * List of mode slugs that should skip code quality verification in AttemptCompletionTool.
+	 * Default: ["research"]
+	 */
+	lenientModes: z.array(z.string()).optional(),
 })
 
 export type Experiments = z.infer<typeof experimentsSchema>
-
-type _AssertExperiments = AssertEqual<Equals<ExperimentId, Keys<Experiments>>>

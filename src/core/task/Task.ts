@@ -152,7 +152,7 @@ export interface TaskOptions extends CreateTaskOptions {
 	task?: string
 	images?: string[]
 	historyItem?: HistoryItem
-	experiments?: Record<string, boolean>
+	experiments?: Record<string, boolean | string[]>
 	startTask?: boolean
 	rootTask?: Task
 	parentTask?: Task
@@ -175,6 +175,9 @@ export class Task extends EventEmitter<TaskEvents> implements TaskLike {
 	readonly metadata: TaskMetadata
 
 	todoList?: TodoItem[]
+
+	/** Experiments configuration including lenientModes */
+	experiments?: Record<string, boolean | string[]>
 
 	readonly rootTask: Task | undefined = undefined
 	readonly parentTask: Task | undefined = undefined
@@ -492,6 +495,7 @@ export class Task extends EventEmitter<TaskEvents> implements TaskLike {
 			console.error("Failed to initialize RooIgnoreController:", error)
 		})
 
+		this.experiments = experimentsConfig
 		this.apiConfiguration = apiConfiguration
 		this.api = buildApiHandler(this.apiConfiguration)
 		this.autoApprovalHandler = new AutoApprovalHandler()
@@ -1568,6 +1572,44 @@ export class Task extends EventEmitter<TaskEvents> implements TaskLike {
 			console.error(`[Task#${context}] Failed to get files read by Roo:`, error)
 			return undefined
 		}
+	}
+
+	/**
+	 * Extract the last N messages from API conversation history as formatted strings.
+	 * Used to provide recent conversation context for recovery context generation.
+	 * Each message is prefixed with [USER] or [ASSISTANT] based on its role.
+	 * Text content is extracted from content blocks; non-text blocks are skipped.
+	 */
+	private extractRecentConversationMessages(count: number): string[] {
+		if (!this.apiConversationHistory || this.apiConversationHistory.length === 0) {
+			return []
+		}
+
+		const recent: string[] = []
+		// Iterate from the end to get the most recent messages
+		for (let i = this.apiConversationHistory.length - 1; i >= 0 && recent.length < count; i--) {
+			const msg = this.apiConversationHistory[i]
+			const role = msg.role === "user" ? "[USER]" : "[ASSISTANT]"
+
+			// Extract text content from the message content blocks
+			const content = msg.content
+			let textContent = ""
+
+			if (typeof content === "string") {
+				textContent = content
+			} else if (Array.isArray(content)) {
+				textContent = content
+					.filter((block) => block.type === "text")
+					.map((block) => (block as Anthropic.TextBlockParam).text)
+					.join("\n")
+			}
+
+			if (textContent.trim()) {
+				recent.unshift(`${role} ${textContent.trim()}`)
+			}
+		}
+
+		return recent
 	}
 
 	public async condenseContext(): Promise<void> {
@@ -3319,10 +3361,13 @@ export class Task extends EventEmitter<TaskEvents> implements TaskLike {
 										.map((c) => c.text)
 										.join("\n")
 									if (originalText) {
+										// Extract last 3-5 messages from conversation history for context
+										const recentMessages = this.extractRecentConversationMessages(5)
 										const enriched = await this.resilienceService.generateRecoveryContext(
 											classifiedError,
 											originalText,
 											state?.experiments,
+											recentMessages,
 										)
 										if (enriched !== originalText) {
 											// Replace text blocks with enriched version

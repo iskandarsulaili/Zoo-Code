@@ -337,6 +337,17 @@ export class CuratorService {
 				report.classifications = classifications
 			}
 			await this.runCuratorReview(report)
+
+			// Cross-domain consolidation: merge skills sharing cross-domain patterns
+			// Safe to call unconditionally — no-ops when no cross-domain patterns exist
+			const crossDomainActions = await this.crossDomainConsolidation()
+			if (crossDomainActions.length > 0) {
+				report.llmActions = [...(report.llmActions ?? []), ...crossDomainActions]
+				this.logger.appendLine(
+					`[CuratorService] Cross-domain consolidation: ${crossDomainActions.length} merge action(s)`,
+				)
+			}
+
 			report.stats.transitionsApplied = report.transitions.length + (report.llmActions?.length ?? 0)
 			this.assignStats(report)
 
@@ -1464,5 +1475,262 @@ ${instructions.trim()}
 
 		this.logger.appendLine(`[CuratorService] Specialized skill created: ${name} at ${skillMdPath}`)
 		return skillMdPath
+	}
+
+	/**
+		* Cross-domain consolidation — finds skills that share cross-domain patterns
+		* and merges them into more versatile skills or creates "meta-skills" that
+		* reference domain-specific variants.
+		*
+		* This method:
+		* 1. Scans all agent-created skills for crossDomainPatterns in their frontmatter
+		* 2. Groups skills by shared cross-domain patterns
+		* 3. For groups with 2+ skills sharing patterns, creates a meta-skill that
+		*    references the domain-specific variants
+		* 4. Returns consolidation actions for the curator report
+		*
+		* Experiment-gated: only runs when selfImprovingSpecializedSkills experiment is enabled.
+		*/
+	async crossDomainConsolidation(): Promise<CuratorAction[]> {
+		const actions: CuratorAction[] = []
+
+		if (!this.config.skillsDir) {
+			this.logger.appendLine("[CuratorService] crossDomainConsolidation: no skillsDir configured, skipping")
+			return actions
+		}
+
+		try {
+			// Step 1: Read all agent-created skill SKILL.md files and extract cross-domain metadata
+			const skillsDir = this.config.skillsDir
+			const agentSkills = this.skillUsageStore.getAgentCreatedForReview()
+			const skillMetadata: Array<{
+				name: string
+				domains: string[]
+				crossDomainPatterns: string[]
+				versatilityScore: number
+			}> = []
+
+			for (const record of agentSkills) {
+				const skillMdPath = path.join(skillsDir, record.skillName, "SKILL.md")
+				try {
+					const content = await fs.readFile(skillMdPath, "utf-8")
+					const yamlMatch = content.match(/^---\n([\s\S]*?)\n---/)
+					if (!yamlMatch) continue
+
+					const yamlBlock = yamlMatch[1]
+					const domains = this.parseYamlList(yamlBlock, "domains")
+					const crossDomainPatterns = this.parseYamlList(yamlBlock, "crossDomainPatterns")
+					const versatilityMatch = yamlBlock.match(/versatilityScore:\s*([\d.]+)/)
+					const versatilityScore = versatilityMatch ? parseFloat(versatilityMatch[1]) : 0
+
+					skillMetadata.push({
+						name: record.skillName,
+						domains,
+						crossDomainPatterns,
+						versatilityScore,
+					})
+				} catch {
+					// SKILL.md doesn't exist or can't be read — skip
+					continue
+				}
+			}
+
+			if (skillMetadata.length < 2) {
+				this.logger.appendLine(
+					`[CuratorService] crossDomainConsolidation: need at least 2 skills with metadata (found ${skillMetadata.length})`,
+				)
+				return actions
+			}
+
+			// Step 2: Group skills by shared cross-domain patterns
+			const patternGroups = new Map<string, typeof skillMetadata>()
+			for (const skill of skillMetadata) {
+				for (const pattern of skill.crossDomainPatterns) {
+					const group = patternGroups.get(pattern) ?? []
+					group.push(skill)
+					patternGroups.set(pattern, group)
+				}
+			}
+
+			// Step 3: For groups with 2+ skills, create merge actions
+			for (const [pattern, group] of patternGroups) {
+				if (group.length < 2) continue
+
+				// Only merge if at least one skill has versatility >= 0.5
+				const hasVersatile = group.some((s) => s.versatilityScore >= 0.5)
+				if (!hasVersatile) continue
+
+				// Build umbrella meta-skill name
+				const domainNames = [...new Set(group.flatMap((s) => s.domains))]
+				const umbrellaName = `meta-${pattern.replace(/[^a-z0-9]/g, "-")}`
+
+				// Check if meta-skill already exists
+				const existingMeta = this.findRecordBySkillName(umbrellaName)
+				if (existingMeta && existingMeta.state === "active") {
+					continue // Already consolidated
+				}
+
+				const absorbNames = group.map((s) => s.name)
+
+				actions.push({
+					action: "merge",
+					target: umbrellaName,
+					absorb: absorbNames,
+				})
+
+				this.logger.appendLine(
+					`[CuratorService] crossDomainConsolidation: merging ${absorbNames.join(", ")} → ${umbrellaName} (pattern: ${pattern})`,
+				)
+			}
+
+			// Step 4: Create meta-skill SKILL.md files for each merge action
+			for (const action of actions) {
+				if (action.action !== "merge") continue
+				await this.createMetaSkill(action.target, action.absorb, skillMetadata)
+			}
+		} catch (error) {
+			this.logger.appendLine(
+				`[CuratorService] crossDomainConsolidation error: ${error instanceof Error ? error.message : String(error)}`,
+			)
+		}
+
+		return actions
+	}
+
+	/**
+		* Create a meta-skill SKILL.md that references domain-specific variants.
+		* The meta-skill acts as an index/table of contents pointing to the
+		* individual domain-specific skills that share cross-domain patterns.
+		*/
+	private async createMetaSkill(
+		umbrellaName: string,
+		absorbNames: string[],
+		allMetadata: Array<{
+			name: string
+			domains: string[]
+			crossDomainPatterns: string[]
+			versatilityScore: number
+		}>,
+	): Promise<void> {
+		if (!this.config.skillsDir) return
+
+		const skillsDir = this.config.skillsDir
+		const metaDir = path.join(skillsDir, umbrellaName)
+		const metaMdPath = path.join(metaDir, "SKILL.md")
+
+		// Skip if meta-skill already exists
+		try {
+			await fs.access(metaMdPath)
+			this.logger.appendLine(`[CuratorService] Meta-skill already exists: ${umbrellaName}, skipping creation`)
+			return
+		} catch {
+			// Doesn't exist — proceed
+		}
+
+		// Collect metadata for absorbed skills
+		const absorbedMeta = absorbNames
+			.map((name) => allMetadata.find((m) => m.name === name))
+			.filter((m): m is (typeof allMetadata)[number] => m !== undefined)
+
+		// Determine shared cross-domain patterns
+		const sharedPatterns = absorbedMeta.length > 0
+			? absorbedMeta
+					.map((m) => m.crossDomainPatterns)
+					.reduce((acc, patterns) => acc.filter((p) => patterns.includes(p)))
+			: []
+
+		// Build the meta-skill content
+		const variantList = absorbNames
+			.map((name) => {
+				const meta = allMetadata.find((m) => m.name === name)
+				const domains = meta?.domains.join(", ") ?? "unknown"
+				const versatility = meta ? `${(meta.versatilityScore * 100).toFixed(0)}%` : "N/A"
+				return `- [\`${name}\`](../${name}/SKILL.md) — domains: ${domains}, versatility: ${versatility}`
+			})
+			.join("\n")
+
+		const sharedPatternsSection =
+			sharedPatterns.length > 0
+				? `## Shared Cross-Domain Patterns
+
+The following patterns are shared across all variants in this meta-skill:
+
+${sharedPatterns.map((p) => `- \`${p}\``).join("\n")}
+`
+				: ""
+
+		const content = `---
+name: ${umbrellaName}
+description: Meta-skill consolidating skills sharing cross-domain pattern "${sharedPatterns[0] ?? "cross-domain"}"
+domains:
+		- cross-domain
+versatilityScore: 0.9
+---
+
+# ${umbrellaName
+	.split("-")
+	.map((s) => s.charAt(0).toUpperCase() + s.slice(1))
+	.join(" ")}
+
+## Description
+
+This meta-skill consolidates multiple domain-specific skills that share common cross-domain patterns. Use this as an index to find the right domain-specific variant for your task.
+
+## Domain-Specific Variants
+
+${variantList}
+
+${sharedPatternsSection}
+## When to Use
+
+This meta-skill is useful when:
+
+1. You're working across multiple domains and need to reference patterns from each
+2. You want to understand how a cross-domain pattern (like validation, error handling, or file operations) applies in different contexts
+3. You need to find the right domain-specific skill for a task that spans boundaries
+
+## Usage
+
+1. Review the domain-specific variants listed above
+2. Select the variant that best matches your current task domain
+3. Follow that variant's instructions for domain-specific guidance
+4. Refer back to this meta-skill for cross-domain pattern awareness
+
+## Note
+
+This meta-skill was auto-generated by cross-domain consolidation. The individual domain-specific skills remain available and are not modified.
+`
+
+		await fs.mkdir(metaDir, { recursive: true })
+		await fs.writeFile(metaMdPath, content, "utf-8")
+
+		// Register in skill usage store
+		const skillId = `skill:project:${umbrellaName}`
+		this.skillUsageStore.getOrCreate(skillId, umbrellaName, "agent")
+
+		this.logger.appendLine(`[CuratorService] Meta-skill created: ${umbrellaName} at ${metaMdPath}`)
+	}
+
+	/**
+		* Parse a YAML list value from a frontmatter block.
+		* e.g. parseYamlList("domains:\n  - foo\n  - bar", "domains") → ["foo", "bar"]
+		*/
+	private parseYamlList(yamlBlock: string, key: string): string[] {
+		const results: string[] = []
+		const regex = new RegExp(`^${key}:\\s*$`, "m")
+		const match = yamlBlock.match(regex)
+		if (!match) return results
+
+		const startIndex = match.index! + match[0].length
+		const remaining = yamlBlock.slice(startIndex)
+		const listRegex = /^\s+-\s+(.+)$/gm
+		let listMatch: RegExpExecArray | null
+		while ((listMatch = listRegex.exec(remaining)) !== null) {
+			// Stop if we hit a non-list line
+			const value = listMatch[1].trim()
+			if (value) results.push(value)
+		}
+
+		return results
 	}
 }

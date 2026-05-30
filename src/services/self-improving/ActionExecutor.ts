@@ -377,6 +377,28 @@ export class ActionExecutor {
 			}
 		}
 
+		// Add cross-domain metadata if present in payload
+		const domains = this.readStringArrayPayload(action.payload.domains)
+		if (domains.length > 0) {
+			frontmatterLines.push("domains:")
+			for (const d of domains) {
+				frontmatterLines.push(`  - ${d}`)
+			}
+		}
+
+		const versatilityScore = this.readNumberPayload(action.payload.versatilityScore)
+		if (versatilityScore !== undefined) {
+			frontmatterLines.push(`versatilityScore: ${versatilityScore}`)
+		}
+
+		const crossDomainPatterns = this.readStringArrayPayload(action.payload.crossDomainPatterns)
+		if (crossDomainPatterns.length > 0) {
+			frontmatterLines.push("crossDomainPatterns:")
+			for (const p of crossDomainPatterns) {
+				frontmatterLines.push(`  - ${p}`)
+			}
+		}
+
 		const fullContent = `---
 ${frontmatterLines.join("\n")}
 ---
@@ -461,6 +483,19 @@ ${instructions.trim()}
 		return Array.from(
 			new Set(value.filter((item): item is string => typeof item === "string" && item.trim().length > 0)),
 		)
+	}
+
+	private readNumberPayload(value: unknown): number | undefined {
+		if (typeof value === "number" && Number.isFinite(value)) {
+			return value
+		}
+		if (typeof value === "string") {
+			const parsed = Number(value)
+			if (Number.isFinite(parsed)) {
+				return parsed
+			}
+		}
+		return undefined
 	}
 
 	private readSkillProvenance(value: unknown): SkillProvenance | undefined {

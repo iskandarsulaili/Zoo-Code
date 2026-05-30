@@ -336,7 +336,7 @@ export type ExtensionState = Pick<
 	maxImageFileSize: number // Maximum size of image files to process in MB
 	maxTotalImageSize: number // Maximum total size for all images in a single read operation in MB
 
-	experiments: Experiments // Map of experiment IDs to their enabled state
+	experiments: Experiments // Map of experiment IDs to their enabled state (includes lenientModes)
 
 	mcpEnabled: boolean
 

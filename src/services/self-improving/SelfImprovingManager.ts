@@ -13,6 +13,7 @@ import type {
 	SelfImprovingScope,
 	TaskEventInfo,
 } from "./types"
+import type { ProviderSettings } from "@roo-code/types"
 import { experimentDefault } from "../../shared/experiments"
 import { LearningStore } from "./LearningStore"
 import { FeedbackCollector } from "./FeedbackCollector"
@@ -36,6 +37,8 @@ import type { InsightsReport } from "./InsightsEngine"
 import { ReviewTeamService } from "./ReviewTeamService"
 import type { ReviewTeamConfig } from "./ReviewTeamService"
 import { QuestionEvaluatorService } from "./QuestionEvaluatorService"
+import { AccumulatedScoreStore } from "./AccumulatedScoreStore"
+import { LLMScorer } from "./LLMScorer"
 import { ResilienceService } from "./ResilienceService"
 import { VerificationEngine } from "./VerificationEngine"
 import { RequirementsVerifier } from "./RequirementsVerifier"
@@ -85,6 +88,8 @@ export class SelfImprovingManager {
 	public verificationEngine: VerificationEngine
 	public requirementsVerifier: RequirementsVerifier
 	private _codeIndexManager: CodeIndexManager | undefined
+	public accumulatedScoreStore: AccumulatedScoreStore
+	public llmScorer: LLMScorer | null = null
 
 	private runtime: Runtime | undefined
 	private started = false
@@ -122,11 +127,14 @@ export class SelfImprovingManager {
 			storageBasePath: this.storageBasePath,
 			getExperiments: () => this.getExperiments(),
 		})
+		this.accumulatedScoreStore = new AccumulatedScoreStore(this.storageBasePath, this.logger)
 		this.questionEvaluator = new QuestionEvaluatorService(this.logger, {
 			enabled: this.getExperiments()?.selfImprovingQuestionEvaluation ?? true,
 			useFullTeam: this.getExperiments()?.selfImprovingReviewTeam ?? true,
+			useHybridScoring: true,
 		})
 		this.questionEvaluator.setReviewTeam(this.reviewTeam)
+		this.questionEvaluator.setAccumulatedScoreStore(this.accumulatedScoreStore)
 
 		// Init dependencies first — needed by AutoModeOrchestrator below
 		this.resilienceService = new ResilienceService(this.logger, {
@@ -179,6 +187,25 @@ export class SelfImprovingManager {
 		this.logger.appendLine(
 			`[SelfImprovingManager] CodeIndexManager ${manager ? "wired" : "unwired"} to child services`,
 		)
+	}
+
+	/**
+	 * Set the API configuration for LLM-dependent services.
+	 * Creates the LLMScorer instance and wires it to QuestionEvaluatorService.
+	 * Gated behind selfImprovingQuestionEvaluation experiment flag.
+	 */
+	setApiConfiguration(apiConfiguration: ProviderSettings | undefined): void {
+		if (!apiConfiguration || !apiConfiguration.apiProvider) {
+			this.llmScorer = null
+			this.questionEvaluator.setLLMScorer(null)
+			this.logger.appendLine("[SelfImprovingManager] LLMScorer unwired (no API configuration)")
+			return
+		}
+
+		this.llmScorer = new LLMScorer(apiConfiguration, this.logger)
+		this.questionEvaluator.setLLMScorer(this.llmScorer)
+
+		this.logger.appendLine("[SelfImprovingManager] LLMScorer wired to QuestionEvaluatorService")
 	}
 
 	setCustomModesManager(manager: any): void {
@@ -265,6 +292,7 @@ export class SelfImprovingManager {
 			await this.curatorService.initialize()
 			await this.insightsEngine.initialize()
 			await this.reviewTeam.initialize()
+			await this.accumulatedScoreStore.initialize()
 			this.started = true
 			this.startTimers(runtime.store)
 
@@ -329,6 +357,7 @@ export class SelfImprovingManager {
 				}
 			}
 
+			await this.accumulatedScoreStore.flush()
 			await this.memoryStore.dispose()
 			this.insightsEngine.dispose()
 		} catch (error) {
