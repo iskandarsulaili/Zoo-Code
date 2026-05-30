@@ -376,10 +376,10 @@ export class ReviewTeamService {
 				.join(" ")
 
 			const results = await this.codeIndexManager.searchIndex(query)
-			if (!results || results.length === 0) {
+			if (!Array.isArray(results) || results.length === 0) {
 				return []
 			}
-
+	
 			return results
 				.filter((r) => r.payload?.codeChunk)
 				.map((r) => ({
