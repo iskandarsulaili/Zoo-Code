@@ -2,6 +2,8 @@ import crypto from "crypto"
 import type { Logger, Requirement, RequirementsVerificationResult, ConflictResolver } from "./types"
 import { KeywordConflictResolver } from "./KeywordConflictResolver"
 
+export type VerificationLevel = "strict" | "lenient" | "bypass"
+
 export interface RequirementsVerifierConfig {
 	/** Whether requirements verification is mandatory (blocks completion) */
 	mandatory: boolean
@@ -9,12 +11,21 @@ export interface RequirementsVerifierConfig {
 	autoExtract: boolean
 	/** Whether to require all requirements to be verified before completion */
 	requireAllVerified: boolean
+	/**
+	 * Verification level for requirements checking.
+	 * - "strict": All requirements must be verified before completion (default)
+	 * - "lenient": Requirements are tracked but non-blocking — log warnings instead of blocking
+	 * - "bypass": Skip requirements verification entirely
+	 * @default "strict"
+	 */
+	verificationLevel: VerificationLevel
 }
 
 const DEFAULT_CONFIG: RequirementsVerifierConfig = {
 	mandatory: true,
 	autoExtract: true,
 	requireAllVerified: true,
+	verificationLevel: "strict",
 }
 
 export class RequirementsVerifier {
@@ -257,6 +268,50 @@ export class RequirementsVerifier {
 		const pending = active.filter((r) => r.status === "pending" || r.status === "skipped")
 		const superseded = all.filter((r) => r.status === "superseded")
 
+		// Bypass mode: skip verification entirely
+		if (this.config.verificationLevel === "bypass") {
+			const summary = `[BYPASS] Requirements verification skipped (${all.length} total, ${active.length} active)`
+			this.logger?.appendLine(`[RequirementsVerifier] ${summary}`)
+			const result: RequirementsVerificationResult = {
+				passed: true,
+				total: all.length,
+				verified,
+				failed,
+				pending,
+				summary,
+			}
+			this.lastVerifyResult = result
+			return result
+		}
+
+		// Lenient mode: log warnings but don't block
+		if (this.config.verificationLevel === "lenient") {
+			if (failed.length > 0 || pending.length > 0) {
+				const warnings: string[] = []
+				if (failed.length > 0) {
+					warnings.push(`${failed.length} failed: ${failed.map((r) => r.text.slice(0, 60)).join("; ")}`)
+				}
+				if (pending.length > 0) {
+					warnings.push(`${pending.length} pending: ${pending.map((r) => r.text.slice(0, 60)).join("; ")}`)
+				}
+				this.logger?.appendLine(
+					`[RequirementsVerifier] [LENIENT] Non-blocking warnings — ${warnings.join(" | ")}`,
+				)
+			}
+			const summary = `[LENIENT] ${active.length} active requirements: ${verified.length} verified, ${failed.length} failed, ${pending.length} pending (${superseded.length} superseded)`
+			const result: RequirementsVerificationResult = {
+				passed: true,
+				total: all.length,
+				verified,
+				failed,
+				pending,
+				summary,
+			}
+			this.lastVerifyResult = result
+			return result
+		}
+
+		// Strict mode (default): current behavior — block on failures/pending
 		const passed = failed.length === 0 && (pending.length === 0 || !this.config.requireAllVerified)
 
 		let summary: string

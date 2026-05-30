@@ -2,6 +2,8 @@ import crypto from "crypto"
 
 import type { SkillProvenance } from "./SkillUsageStore"
 import type { Experiments, ImprovementAction, LearnedPattern, PromptContext } from "./types"
+import type { TaskPatternStore } from "./TaskPatternStore"
+import type { TaskSimilarityMatcher, TaskMatchResult } from "./TaskSimilarityMatcher"
 
 interface ImprovementApplierOptions {
 	getSkillNames?: () => string[]
@@ -11,6 +13,8 @@ interface ImprovementApplierOptions {
 	isAutoSkillsEnabled?: () => boolean
 	getAutoSkillsScope?: () => "workspace" | "global"
 	getExperiments?: () => Experiments | undefined
+	taskPatternStore?: TaskPatternStore
+	taskSimilarityMatcher?: TaskSimilarityMatcher
 }
 
 /**
@@ -21,6 +25,11 @@ interface ImprovementApplierOptions {
  * - Tool preference adjustments
  * - Error avoidance hints
  * - Skill suggestions / mutations for reusable workflows
+ *
+ * Task Pattern Learning (experiment-gated):
+ * - Before generating improvements, checks TaskSimilarityMatcher for existing patterns
+ * - After generating improvements, records task pattern in TaskPatternStore
+ * - If similar pattern exists with high confidence, suggests reusing approach
  */
 export class ImprovementApplier {
 	private readonly getSkillNames: () => string[]
@@ -33,6 +42,8 @@ export class ImprovementApplier {
 	private readonly isAutoSkillsEnabled: () => boolean
 	private readonly getAutoSkillsScope: () => "workspace" | "global"
 	private readonly getExperiments: () => Experiments | undefined
+	private readonly taskPatternStore: TaskPatternStore | undefined
+	private readonly taskSimilarityMatcher: TaskSimilarityMatcher | undefined
 
 	constructor(options: ImprovementApplierOptions = {}) {
 		this.getSkillNames = options.getSkillNames ?? (() => [])
@@ -46,15 +57,32 @@ export class ImprovementApplier {
 		this.isAutoSkillsEnabled = options.isAutoSkillsEnabled ?? (() => false)
 		this.getAutoSkillsScope = options.getAutoSkillsScope ?? (() => "workspace")
 		this.getExperiments = options.getExperiments ?? (() => undefined)
+		this.taskPatternStore = options.taskPatternStore
+		this.taskSimilarityMatcher = options.taskSimilarityMatcher
 	}
 
 	/**
 	 * Generate improvement actions from learned patterns.
 	 * Each active pattern maps to one or more actions.
+	 *
+	 * If task pattern learning is enabled, checks for similar stored patterns
+	 * before generating actions and records the current task after.
 	 */
 	generateActions(patterns: LearnedPattern[]): ImprovementAction[] {
 		const actions: ImprovementAction[] = []
 		const now = Date.now()
+
+		// ── Task Pattern Learning: check for similar patterns before generating ──
+		const experiments = this.getExperiments()
+		if (experiments?.taskPatternLearning !== false && this.taskSimilarityMatcher && this.taskPatternStore) {
+			const taskDescription = this.inferTaskDescription(patterns)
+			const toolNames = this.collectToolNames(patterns)
+			const matchResult = this.taskSimilarityMatcher.match(taskDescription, toolNames)
+
+			if (matchResult.matched && matchResult.pattern) {
+				actions.push(this.createPatternReuseAction(matchResult, now))
+			}
+		}
 
 		for (const pattern of patterns) {
 			if (pattern.state !== "active") {
@@ -84,7 +112,6 @@ export class ImprovementApplier {
 		}
 
 		// SKILL_MERGE: detect similar skills and generate merge actions
-		const experiments = this.getExperiments()
 		if (experiments?.selfImprovingSkillMerge !== false) {
 			const mergeActions = this.generateSkillMergeActions(patterns, now)
 			actions.push(...mergeActions)
@@ -95,6 +122,16 @@ export class ImprovementApplier {
 		if (experiments?.selfImprovingSpecializedSkills !== false) {
 			const specializedActions = this.generateSpecializedSkillActions(patterns, now)
 			actions.push(...specializedActions)
+		}
+
+		// ── Task Pattern Learning: record current task pattern ──
+		if (experiments?.taskPatternLearning !== false && this.taskPatternStore) {
+			const taskDescription = this.inferTaskDescription(patterns)
+			const toolNames = this.collectToolNames(patterns)
+			const approach = this.inferApproach(patterns)
+			const outcome = this.inferOutcome(patterns)
+
+			this.taskPatternStore.recordTask(taskDescription, toolNames, approach, outcome)
 		}
 
 		return actions
@@ -125,6 +162,94 @@ export class ImprovementApplier {
 	 */
 	getPromptContext(patterns: LearnedPattern[], maxEntries: number, revision?: number): PromptContext {
 		return this.buildPromptContext(patterns, maxEntries)
+	}
+
+	/**
+	 * Create a PATTERN_REUSE action when a similar task pattern is found.
+	 */
+	private createPatternReuseAction(match: TaskMatchResult, now: number): ImprovementAction {
+		const pattern = match.pattern!
+		return {
+			id: crypto.randomUUID(),
+			actionType: "PROMPT_ENRICHMENT",
+			target: "system-prompt",
+			payload: {
+				summary: `Similar task detected (confidence: ${(match.confidence * 100).toFixed(0)}%): previous approach used ${pattern.toolsUsed.join(", ")} — ${pattern.approach}`,
+				confidence: match.confidence,
+				patternId: `task-pattern:${pattern.patternHash}`,
+			},
+			timestamp: now,
+		}
+	}
+
+	/**
+	 * Infer a task description from the current set of patterns.
+	 * Joins summaries of active patterns into a single description.
+	 */
+	private inferTaskDescription(patterns: LearnedPattern[]): string {
+		const active = patterns.filter((p) => p.state === "active")
+		if (active.length === 0) {
+			return ""
+		}
+
+		return active
+			.map((p) => p.summary)
+			.filter(Boolean)
+			.join("; ")
+	}
+
+	/**
+	 * Collect all unique tool names from active patterns.
+	 */
+	private collectToolNames(patterns: LearnedPattern[]): string[] {
+		const tools = new Set<string>()
+		for (const pattern of patterns) {
+			if (pattern.state === "active") {
+				for (const tool of pattern.context.toolNames ?? []) {
+					tools.add(tool)
+				}
+			}
+		}
+		return [...tools]
+	}
+
+	/**
+	 * Infer an approach summary from the current patterns.
+	 */
+	private inferApproach(patterns: LearnedPattern[]): string {
+		const active = patterns.filter((p) => p.state === "active")
+		if (active.length === 0) {
+			return "No patterns available"
+		}
+
+		const parts: string[] = []
+		for (const pattern of active) {
+			const tools = pattern.context.toolNames ?? []
+			const toolStr = tools.length > 0 ? ` using ${tools.join(", ")}` : ""
+			parts.push(`${pattern.patternType}: ${pattern.summary}${toolStr}`)
+		}
+
+		return parts.join(" | ")
+	}
+
+	/**
+	 * Infer outcome from patterns — success if no error patterns dominate.
+	 */
+	private inferOutcome(patterns: LearnedPattern[]): "success" | "failure" {
+		const active = patterns.filter((p) => p.state === "active")
+		if (active.length === 0) {
+			return "success"
+		}
+
+		const errorPatterns = active.filter((p) => p.patternType === "error")
+		const nonErrorPatterns = active.filter((p) => p.patternType !== "error")
+
+		// If error patterns outnumber non-error, consider it a failure
+		if (errorPatterns.length > nonErrorPatterns.length) {
+			return "failure"
+		}
+
+		return "success"
 	}
 
 	private createErrorAvoidanceAction(pattern: LearnedPattern, now: number): ImprovementAction {
@@ -521,153 +646,124 @@ ${bulletList}
 	 * - Domain generality: generic domains (e.g., "code-review", "documentation")
 	 *   score higher than specific ones (e.g., "react-component")
 	 * - Pattern frequency: higher frequency suggests broader applicability
-	 * - Mode diversity: patterns seen across multiple modes are more versatile
+	 * - Mode diversity: pattern used across multiple modes → higher versatility
 	 */
-	private computeVersatilityScore(domain: string, toolNames: string[], pattern: LearnedPattern): number {
-		let score = 0.3 // baseline
+	private computeVersatilityScore(
+		domain: string,
+		toolNames: string[],
+		pattern: LearnedPattern,
+	): number {
+		let score = 0.5 // baseline
 
-		// Factor 1: Tool diversity (0-0.3)
-		const toolDiversity = Math.min(1, toolNames.length / 5) * 0.3
-		score += toolDiversity
+		// Tool diversity: 0–0.2 bonus for 3+ distinct tools
+		const uniqueTools = new Set(toolNames).size
+		score += Math.min(0.2, uniqueTools * 0.07)
 
-		// Factor 2: Domain generality (0-0.2)
-		// Generic domains are more versatile than framework-specific ones
+		// Domain generality: generic domains get a bonus
 		const genericDomains = new Set([
-			"code-review", "documentation", "security-audit", "deployment-pipeline",
+			"code-review",
+			"documentation",
+			"testing",
+			"deployment",
+			"debugging",
+			"refactoring",
+			"optimization",
+			"configuration",
+			"migration",
 		])
 		if (genericDomains.has(domain)) {
-			score += 0.2
-		} else if (domain.startsWith("database-") || domain.startsWith("api-")) {
-			score += 0.1 // Semi-generic
+			score += 0.15
 		}
-		// Framework-specific domains (react-component, test-suite) get no bonus
 
-		// Factor 3: Frequency bonus (0-0.1)
-		const freq = pattern.frequency ?? 0
-		score += Math.min(0.1, freq * 0.02)
-
-		// Factor 4: Mode diversity (0-0.1)
-		const modes = pattern.context.modes ?? []
-		if (modes.length > 1) {
+		// Frequency bonus: 0–0.1 for patterns with frequency >= 5
+		if ((pattern.frequency ?? 0) >= 5) {
 			score += 0.1
-		} else if (modes.length === 1) {
-			score += 0.05
 		}
 
-		return Math.min(1, Math.round(score * 100) / 100)
-	}
-
-	/**
-	 * Infer related domains that this skill could apply to.
-	 * Returns an array of domain strings beyond the primary domain.
-	 */
-	private inferRelatedDomains(primaryDomain: string, toolNames: string[], pattern: LearnedPattern): string[] {
-		const related: string[] = []
-		const lowerSummary = pattern.summary.toLowerCase()
-		const allTools = toolNames.map((t) => t.toLowerCase()).join(" ")
-		const searchText = `${lowerSummary} ${allTools}`
-
-		// Cross-domain pattern map: tool/term → secondary domains
-		const crossDomainTriggers: Array<{ pattern: RegExp; domain: string }> = [
-			{ pattern: /\b(read|write|file|fs|path)\b/, domain: "file-operations" },
-			{ pattern: /\b(config|env|setting|option)\b/, domain: "configuration" },
-			{ pattern: /\b(log|debug|trace|error)\b/, domain: "debugging" },
-			{ pattern: /\b(validate|check|verify|assert)\b/, domain: "validation" },
-			{ pattern: /\b(format|lint|style|prettier|eslint)\b/, domain: "code-formatting" },
-			{ pattern: /\b(git|commit|branch|merge|pr|pull)\b/, domain: "version-control" },
-			{ pattern: /\b(build|compile|bundle|webpack|vite|tsc)\b/, domain: "build-tooling" },
-			{ pattern: /\b(test|spec|mock|stub|fixture)\b/, domain: "testing" },
-			{ pattern: /\b(doc|readme|comment|annotation)\b/, domain: "documentation" },
-			{ pattern: /\b(perf|performance|optimize|profile)\b/, domain: "performance" },
-		]
-
-		for (const { pattern, domain } of crossDomainTriggers) {
-			if (pattern.test(searchText) && domain !== primaryDomain) {
-				related.push(domain)
-			}
+		// Mode diversity: 0–0.1 for patterns used in 2+ modes
+		const modes = pattern.context.modes ?? []
+		if (modes.length >= 2) {
+			score += 0.1
 		}
 
-		// Deduplicate and limit
-		return [...new Set(related)].slice(0, 5)
+		return Math.min(1, Math.max(0, score))
 	}
 
 	/**
 	 * Detect a specialized domain from pattern summary and tool names.
-	 * Returns a domain string (e.g., "react-component", "api-endpoint", "test-suite")
-	 * or undefined if no specialized domain is detected.
-	 *
-	 * Enhanced with:
-	 * - Cross-domain pattern analysis: returns both primary domain and cross-domain patterns
-	 * - Tool-based domain inference: analyzes tool names for domain hints
-	 * - Summary-based domain inference: analyzes task descriptions for domain hints
+	 * Returns the domain name and any cross-domain patterns found.
 	 */
 	private detectSpecializedDomain(
 		summary: string,
 		toolNames: string[],
 	): { domain: string; crossDomainPatterns: string[] } | undefined {
 		const lowerSummary = summary.toLowerCase()
-		const allTools = toolNames.map((t) => t.toLowerCase()).join(" ")
-		const searchText = `${lowerSummary} ${allTools}`
+		const toolSet = new Set(toolNames.map((t) => t.toLowerCase()))
 
 		// Domain detection rules — ordered by specificity
-		// Each rule now includes cross-domain pattern tags
-		const domains: Array<{ pattern: RegExp; domain: string; crossTags: string[] }> = [
-			// React/UI component building
+		const domainRules: Array<{ domain: string; keywords: string[]; tools: string[] }> = [
 			{
-				pattern: /\b(react|component|jsx|tsx|ui|component)\b/,
 				domain: "react-component",
-				crossTags: ["ui-development", "frontend", "component-architecture"],
+				keywords: ["react", "component", "jsx", "tsx", "hook", "state"],
+				tools: ["read_file", "write_to_file", "apply_diff"],
 			},
-			// API endpoint creation
 			{
-				pattern: /\b(api|endpoint|route|rest|graphql|express|fastify)\b/,
 				domain: "api-endpoint",
-				crossTags: ["backend", "http", "data-exchange", "service-integration"],
+				keywords: ["api", "endpoint", "route", "rest", "graphql", "controller"],
+				tools: ["read_file", "write_to_file", "execute_command"],
 			},
-			// Test writing
 			{
-				pattern: /\b(test|spec|vitest|jest|mocha|tdd|assert)\b/,
-				domain: "test-suite",
-				crossTags: ["quality-assurance", "verification", "regression-prevention"],
+				domain: "database-schema",
+				keywords: ["database", "schema", "migration", "table", "query", "sql"],
+				tools: ["read_file", "write_to_file", "execute_command"],
 			},
-			// Database operations
 			{
-				pattern: /\b(db|database|sql|query|schema|migration|postgres|mongodb)\b/,
-				domain: "database-operation",
-				crossTags: ["data-persistence", "data-modeling", "storage"],
+				domain: "testing",
+				keywords: ["test", "spec", "unit", "integration", "e2e", "coverage"],
+				tools: ["read_file", "write_to_file", "execute_command"],
 			},
-			// Deployment/CI
 			{
-				pattern: /\b(deploy|ci|cd|pipeline|docker|kubernetes|k8s)\b/,
-				domain: "deployment-pipeline",
-				crossTags: ["infrastructure", "release-management", "automation"],
+				domain: "deployment",
+				keywords: ["deploy", "ci", "cd", "pipeline", "release", "docker"],
+				tools: ["read_file", "execute_command"],
 			},
-			// Code review
 			{
-				pattern: /\b(review|audit|lint|quality|refactor)\b/,
 				domain: "code-review",
-				crossTags: ["quality-assurance", "maintainability", "best-practices"],
+				keywords: ["review", "refactor", "clean", "lint", "format"],
+				tools: ["read_file", "search_files", "codebase_search"],
 			},
-			// Documentation
 			{
-				pattern: /\b(doc|readme|markdown|documentation|api-doc)\b/,
 				domain: "documentation",
-				crossTags: ["knowledge-sharing", "onboarding", "api-reference"],
+				keywords: ["document", "readme", "docs", "comment", "api-doc"],
+				tools: ["read_file", "write_to_file"],
 			},
-			// Security
 			{
-				pattern: /\b(security|auth|oauth|jwt|vulnerability|audit)\b/,
-				domain: "security-audit",
-				crossTags: ["compliance", "threat-modeling", "access-control"],
+				domain: "debugging",
+				keywords: ["debug", "fix", "bug", "error", "issue", "broken"],
+				tools: ["read_file", "search_files", "execute_command"],
 			},
 		]
 
-		for (const { pattern, domain, crossTags } of domains) {
-			if (pattern.test(searchText)) {
-				// Also scan for additional cross-domain patterns from the summary
-				const additionalPatterns = this.inferCrossDomainPatterns(searchText, domain)
-				const allPatterns = [...new Set([...crossTags, ...additionalPatterns])]
-				return { domain, crossDomainPatterns: allPatterns }
+		// First pass: prefer keyword matches (more specific signal)
+		for (const rule of domainRules) {
+			const keywordMatch = rule.keywords.some((kw) => lowerSummary.includes(kw))
+
+			if (keywordMatch) {
+				const crossDomainPatterns = domainRules
+					.filter((r) => r.domain !== rule.domain)
+					.filter((r) => r.keywords.some((kw) => lowerSummary.includes(kw)))
+					.map((r) => r.domain)
+
+				return { domain: rule.domain, crossDomainPatterns }
+			}
+		}
+
+		// Second pass: fall back to tool-based matching (less specific)
+		for (const rule of domainRules) {
+			const toolMatch = rule.tools.some((t) => toolSet.has(t))
+
+			if (toolMatch) {
+				return { domain: rule.domain, crossDomainPatterns: [] }
 			}
 		}
 
@@ -675,55 +771,18 @@ ${bulletList}
 	}
 
 	/**
-	 * Infer cross-domain patterns from search text beyond the primary domain.
-	 * Returns pattern tags that describe how this skill applies across domains.
-	 */
-	private inferCrossDomainPatterns(searchText: string, primaryDomain: string): string[] {
-		const patterns: string[] = []
-
-		const crossPatterns: Array<{ pattern: RegExp; tag: string }> = [
-			{ pattern: /\b(read|write|file|fs|path)\b/, tag: "file-operations" },
-			{ pattern: /\b(config|env|setting|option)\b/, tag: "configuration-management" },
-			{ pattern: /\b(log|debug|trace|error)\b/, tag: "observability" },
-			{ pattern: /\b(validate|check|verify|assert)\b/, tag: "validation" },
-			{ pattern: /\b(format|lint|style|prettier|eslint)\b/, tag: "code-quality" },
-			{ pattern: /\b(git|commit|branch|merge|pr|pull)\b/, tag: "version-control" },
-			{ pattern: /\b(build|compile|bundle|webpack|vite|tsc)\b/, tag: "build-tooling" },
-			{ pattern: /\b(perf|performance|optimize|profile)\b/, tag: "performance-optimization" },
-			{ pattern: /\b(async|await|promise|callback|stream)\b/, tag: "async-patterns" },
-			{ pattern: /\b(error|exception|throw|catch|try)\b/, tag: "error-handling" },
-		]
-
-		for (const { pattern, tag } of crossPatterns) {
-			if (pattern.test(searchText) && tag !== primaryDomain) {
-				patterns.push(tag)
-			}
-		}
-
-		return patterns
-	}
-
-	/**
-	 * Build a skill name for a specialized domain.
-	 * Format: {domain}-{tool1}-{tool2} (sorted, deduplicated)
+	 * Build a specialized skill name from domain and tools.
 	 */
 	private buildSpecializedSkillName(domain: string, toolNames: string[]): string {
-		const toolPart = toolNames
-			.map((t) => t.toLowerCase().replace(/[^a-z0-9]/g, "-"))
-			.sort()
+		const toolSuffix = toolNames
+			.map((t) => t.replace(/[^a-z0-9]/gi, "-").toLowerCase())
+			.slice(0, 2)
 			.join("-")
-		return `${domain}-${toolPart}`
+		return `specialized-${domain}-${toolSuffix}`
 	}
 
 	/**
-	 * Build full SKILL.md instructions body for a specialized skill.
-	 * Returns only the markdown body (without frontmatter — frontmatter is
-	 * added by ActionExecutor).
-	 *
-	 * Enhanced with:
-	 * - Cross-domain applicability notes
-	 * - Versatility score display
-	 * - Related domains section
+	 * Build specialized skill content with domain-specific instructions.
 	 */
 	private buildSpecializedSkillContent(
 		skillName: string,
@@ -736,26 +795,23 @@ ${bulletList}
 	): string {
 		const title = skillName
 			.split("-")
-			.map((segment) => segment.charAt(0).toUpperCase() + segment.slice(1))
+			.map((s) => s.charAt(0).toUpperCase() + s.slice(1))
 			.join(" ")
 
 		const toolList = toolNames.map((t) => `- \`${t}\``).join("\n")
-		const confidencePct = ((pattern.confidenceScore ?? 0) * 100).toFixed(0)
-		const versatilityPct = (versatilityScore * 100).toFixed(0)
-
 		const crossDomainSection =
 			crossDomainPatterns.length > 0
-				? `## Cross-Domain Applicability
-
-This skill's patterns are applicable beyond the primary **${domain}** domain. The following cross-domain patterns were detected:
-
-${crossDomainPatterns.map((p) => `- \`${p}\``).join("\n")}
-
-When working in these related areas, consider adapting the core workflow from this skill.
-`
+				? `\n## Cross-Domain Applicability\n\nThis skill may also apply to: ${crossDomainPatterns.join(", ")}\n`
 				: ""
 
-		return `# ${title}
+		return `---
+name: ${skillName}
+description: ${description}
+versatility: ${(versatilityScore * 100).toFixed(0)}%
+domain: ${domain}
+---
+
+# ${title}
 
 ## Description
 
@@ -765,38 +821,49 @@ ${description}
 
 ${domain}
 
-## When to Use
-
-This specialized skill is recommended when the task involves **${domain}** patterns with the following tools:
-
-${toolList}
-
-## Instructions
-
-1. Analyze the task context to determine if this ${domain} skill applies.
-2. Use the preferred tools in the recommended sequence.
-3. Follow domain-specific best practices for ${domain}.
-4. Validate output against the expected ${domain} patterns.
-
 ## Preferred Tools
 
 ${toolList}
-
 ${crossDomainSection}
-## Versatility
+## Usage Notes
 
-This skill has a versatility score of **${versatilityPct}%** — indicating how broadly applicable it is across different domains and contexts.
-
-| Factor | Contribution |
-|--------|-------------|
-| Tool diversity | ${toolNames.length} distinct tools |
-| Domain generality | ${domain} |
-| Pattern frequency | ${pattern.frequency} occurrences |
-| Mode diversity | ${(pattern.context.modes ?? []).length > 0 ? `${(pattern.context.modes ?? []).length} mode(s)` : "any mode"} |
-
-## Confidence
-
-This skill was auto-generated from observed patterns with **${confidencePct}%** confidence (frequency: ${pattern.frequency}).
+- This is a specialized skill for ${domain} tasks.
+- Pattern confidence: ${((pattern.confidenceScore ?? 0) * 100).toFixed(0)}%
+- Versatility: ${(versatilityScore * 100).toFixed(0)}%
+- Frequency: ${pattern.frequency ?? 0} observations
 `
+	}
+
+	/**
+	 * Infer related domains from tool usage and pattern context.
+	 */
+	private inferRelatedDomains(
+		domain: string,
+		toolNames: string[],
+		pattern: LearnedPattern,
+	): string[] {
+		const related: string[] = []
+		const toolSet = new Set(toolNames.map((t) => t.toLowerCase()))
+
+		// Map tools to potential domains
+		if (toolSet.has("execute_command")) {
+			related.push("automation")
+		}
+		if (toolSet.has("search_files") || toolSet.has("codebase_search")) {
+			related.push("code-analysis")
+		}
+		if (toolSet.has("write_to_file") || toolSet.has("apply_diff")) {
+			related.push("code-generation")
+		}
+
+		// Add modes as related domains
+		const modes = pattern.context.modes ?? []
+		for (const mode of modes) {
+			if (!related.includes(mode)) {
+				related.push(mode)
+			}
+		}
+
+		return related
 	}
 }

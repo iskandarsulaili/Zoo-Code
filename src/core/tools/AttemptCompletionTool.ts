@@ -124,13 +124,29 @@ export class AttemptCompletionTool extends BaseTool<"attempt_completion"> {
 
 			// Guard 5: Requirements verification — check user intent is fulfilled
 			if (this.requirementsVerifier) {
-				const reqResult = await this.requirementsVerifier.verify()
-				if (!reqResult.passed && this.requirementsVerifier.getConfig().mandatory) {
-					const errorMsg = `Requirements verification failed:\n${reqResult.summary}\n\nFailed requirements:\n${reqResult.failed.map((r) => `  ❌ ${r.text}`).join("\n")}\n\nPending requirements:\n${reqResult.pending.map((r) => `  ⏳ ${r.text}`).join("\n")}\n\nPlease address these requirements before completing the task.`
-					task.consecutiveMistakeCount++
-					task.recordToolError("attempt_completion")
-					pushToolResult(formatResponse.toolError(errorMsg))
-					return
+				// Read verificationLevel from experiments, default to "strict"
+				const experiments = task.experiments
+				const verificationLevel = experiments?.verificationLevel ?? "strict"
+
+				// Apply verificationLevel to the verifier config
+				this.requirementsVerifier.updateConfig({ verificationLevel })
+
+				// Bypass mode: skip verification entirely
+				if (verificationLevel === "bypass") {
+					this.log?.(`[AttemptCompletionTool] Requirements verification bypassed (verificationLevel=bypass)`)
+				} else {
+					const reqResult = await this.requirementsVerifier.verify()
+					const isBlocking = verificationLevel === "strict" && this.requirementsVerifier.getConfig().mandatory
+					if (!reqResult.passed && isBlocking) {
+						const errorMsg = `Requirements verification failed:\n${reqResult.summary}\n\nFailed requirements:\n${reqResult.failed.map((r) => `  ❌ ${r.text}`).join("\n")}\n\nPending requirements:\n${reqResult.pending.map((r) => `  ⏳ ${r.text}`).join("\n")}\n\nPlease address these requirements before completing the task.`
+						task.consecutiveMistakeCount++
+						task.recordToolError("attempt_completion")
+						pushToolResult(formatResponse.toolError(errorMsg))
+						return
+					}
+					if (verificationLevel === "lenient" && !reqResult.passed) {
+						this.log?.(`[AttemptCompletionTool] [LENIENT] Requirements issues found but non-blocking: ${reqResult.summary}`)
+					}
 				}
 			}
 

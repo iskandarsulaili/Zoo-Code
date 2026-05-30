@@ -207,6 +207,15 @@ export const globalSettingsSchema = z.object({
 	 */
 	lenientModes: z.array(z.string()).optional(),
 
+	/**
+	 * Verification level for requirements verification in AttemptCompletionTool.
+	 * - "strict": All requirements must be verified before completion (default)
+	 * - "lenient": Requirements are tracked but non-blocking
+	 * - "bypass": Skip requirements verification entirely
+	 * @default "strict"
+	 */
+	verificationLevel: z.enum(["strict", "lenient", "bypass"]).optional(),
+
 	codebaseIndexModels: codebaseIndexModelsSchema.optional(),
 	codebaseIndexConfig: codebaseIndexConfigSchema.optional(),
 

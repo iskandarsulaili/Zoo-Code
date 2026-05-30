@@ -32,6 +32,7 @@ export const experimentIds = [
 	"requirementsVerification",
 	"recoveryContext",
 	"selfImprovingSpecializedSkills",
+	"taskPatternLearning",
 ] as const
 
 export const experimentIdsSchema = z.enum(experimentIds)
@@ -68,12 +69,22 @@ export const experimentsSchema = z.object({
 	requirementsVerification: z.boolean().optional(),
 	recoveryContext: z.boolean().optional(),
 	selfImprovingSpecializedSkills: z.boolean().optional(),
+	taskPatternLearning: z.boolean().optional(),
 
 	/**
 	 * List of mode slugs that should skip code quality verification in AttemptCompletionTool.
 	 * Default: ["research"]
 	 */
 	lenientModes: z.array(z.string()).optional(),
+
+	/**
+	 * Verification level for requirements verification in AttemptCompletionTool.
+	 * - "strict": All requirements must be verified before completion (default)
+	 * - "lenient": Requirements are tracked but non-blocking — log warnings instead of blocking
+	 * - "bypass": Skip requirements verification entirely
+	 * @default "strict"
+	 */
+	verificationLevel: z.enum(["strict", "lenient", "bypass"]).optional(),
 })
 
 export type Experiments = z.infer<typeof experimentsSchema>

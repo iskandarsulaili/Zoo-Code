@@ -320,6 +320,13 @@ const SettingsView = forwardRef<SettingsViewRef, SettingsViewProps>(({ onDone, t
 		})
 	}, [])
 
+	const setVerificationLevel = useCallback((level: "strict" | "lenient" | "bypass") => {
+		setCachedState((prevState) => {
+			setChangeDetected(true)
+			return { ...prevState, experiments: { ...prevState.experiments, verificationLevel: level } }
+		})
+	}, [])
+
 	const setTelemetrySetting = useCallback((setting: TelemetrySetting) => {
 		setCachedState((prevState) => {
 			if (prevState.telemetrySetting === setting) {
@@ -1003,6 +1010,8 @@ const SettingsView = forwardRef<SettingsViewRef, SettingsViewProps>(({ onDone, t
 								setSelfImprovingScope={setSelfImprovingScope}
 								setSelfImprovingAutoSkillsScope={setSelfImprovingAutoSkillsScope}
 								setLenientModes={setLenientModes}
+								verificationLevel={experiments.verificationLevel as "strict" | "lenient" | "bypass" | undefined}
+								setVerificationLevel={setVerificationLevel}
 							/>
 						)}
 

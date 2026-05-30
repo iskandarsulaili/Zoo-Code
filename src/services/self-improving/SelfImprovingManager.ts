@@ -38,6 +38,8 @@ import { ReviewTeamService } from "./ReviewTeamService"
 import type { ReviewTeamConfig } from "./ReviewTeamService"
 import { QuestionEvaluatorService } from "./QuestionEvaluatorService"
 import { AccumulatedScoreStore } from "./AccumulatedScoreStore"
+import { TaskPatternStore } from "./TaskPatternStore"
+import { TaskSimilarityMatcher } from "./TaskSimilarityMatcher"
 import { LLMScorer } from "./LLMScorer"
 import { ResilienceService } from "./ResilienceService"
 import { VerificationEngine } from "./VerificationEngine"
@@ -89,6 +91,8 @@ export class SelfImprovingManager {
 	public requirementsVerifier: RequirementsVerifier
 	private _codeIndexManager: CodeIndexManager | undefined
 	public accumulatedScoreStore: AccumulatedScoreStore
+	public taskPatternStore: TaskPatternStore
+	public taskSimilarityMatcher: TaskSimilarityMatcher
 	public llmScorer: LLMScorer | null = null
 
 	private runtime: Runtime | undefined
@@ -128,6 +132,8 @@ export class SelfImprovingManager {
 			getExperiments: () => this.getExperiments(),
 		})
 		this.accumulatedScoreStore = new AccumulatedScoreStore(this.storageBasePath, this.logger)
+		this.taskPatternStore = new TaskPatternStore(this.storageBasePath, this.logger)
+		this.taskSimilarityMatcher = new TaskSimilarityMatcher(this.taskPatternStore)
 		this.questionEvaluator = new QuestionEvaluatorService(this.logger, {
 			enabled: this.getExperiments()?.selfImprovingQuestionEvaluation ?? true,
 			useFullTeam: this.getExperiments()?.selfImprovingReviewTeam ?? true,
@@ -293,6 +299,8 @@ export class SelfImprovingManager {
 			await this.insightsEngine.initialize()
 			await this.reviewTeam.initialize()
 			await this.accumulatedScoreStore.initialize()
+			await this.taskPatternStore.initialize()
+			this.taskPatternStore.pruneOldPatterns()
 			this.started = true
 			this.startTimers(runtime.store)
 
@@ -358,6 +366,7 @@ export class SelfImprovingManager {
 			}
 
 			await this.accumulatedScoreStore.flush()
+			await this.taskPatternStore.flush()
 			await this.memoryStore.dispose()
 			this.insightsEngine.dispose()
 		} catch (error) {
@@ -863,6 +872,8 @@ export class SelfImprovingManager {
 						),
 					getAutoSkillsScope: () => this.resolveAutoSkillsScope(),
 					getExperiments: () => this.getExperiments(),
+					taskPatternStore: this.taskPatternStore,
+					taskSimilarityMatcher: this.taskSimilarityMatcher,
 				}),
 				codeIndexAdapter: new CodeIndexAdapter(this.logger, this._codeIndexManager),
 			}

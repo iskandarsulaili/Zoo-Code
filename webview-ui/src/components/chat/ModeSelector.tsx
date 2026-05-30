@@ -23,7 +23,7 @@ const SEARCH_THRESHOLD = 6
  * ONE-SHOT and KAIZEN orchestrator modes require every self-improving
  * sub-feature to be active before they become available in the mode selector.
  */
-const areAllSelfImprovingEnabled = (experiments: Record<string, boolean | undefined>): boolean => {
+const areAllSelfImprovingEnabled = (experiments: Record<string, unknown>): boolean => {
 	const requiredFlags = [
 		"selfImprovingPromptQuality",
 		"selfImprovingToolPreference",

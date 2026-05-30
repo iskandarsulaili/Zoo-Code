@@ -37,6 +37,8 @@ type ExperimentalSettingsProps = HTMLAttributes<HTMLDivElement> & {
 	setSelfImprovingScope?: (scope: "workspace" | "global") => void
 	setSelfImprovingAutoSkillsScope?: (scope: "workspace" | "global") => void
 	setLenientModes?: (modes: string[]) => void
+	verificationLevel?: "strict" | "lenient" | "bypass"
+	setVerificationLevel?: (level: "strict" | "lenient" | "bypass") => void
 }
 
 export const ExperimentalSettings = ({
@@ -59,6 +61,8 @@ export const ExperimentalSettings = ({
 	setSelfImprovingScope,
 	setSelfImprovingAutoSkillsScope,
 	setLenientModes,
+	verificationLevel,
+	setVerificationLevel,
 	className,
 	...props
 }: ExperimentalSettingsProps) => {
@@ -568,6 +572,26 @@ export const ExperimentalSettings = ({
 							placeholder="research, ask, architect"
 							data-testid="experimental-lenient-modes-input"
 						/>
+					</SearchableSetting>
+
+					{/* Verification Level */}
+					<SearchableSetting
+						settingId="experimental-verification-level"
+						section="experimental"
+						label="Verification Level"
+						description="Controls how requirements verification behaves on attempt_completion">
+						<Select
+							value={verificationLevel ?? "strict"}
+							onValueChange={(value: "strict" | "lenient" | "bypass") => setVerificationLevel?.(value)}>
+							<SelectTrigger data-testid="experimental-verification-level-select">
+								<SelectValue />
+							</SelectTrigger>
+							<SelectContent>
+								<SelectItem value="strict">Strict — All requirements must be verified</SelectItem>
+								<SelectItem value="lenient">Lenient — Log warnings, don't block</SelectItem>
+								<SelectItem value="bypass">Bypass — Skip requirements verification</SelectItem>
+							</SelectContent>
+						</Select>
 					</SearchableSetting>
 				</Section>
 			</div>

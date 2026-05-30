@@ -21,6 +21,10 @@ interface SearchableSettingProps extends HTMLAttributes<HTMLDivElement> {
 	 * This should be the translated label text.
 	 */
 	label: string
+	/**
+	 * Optional description text shown in search results.
+	 */
+	description?: string
 	children: React.ReactNode
 }
 

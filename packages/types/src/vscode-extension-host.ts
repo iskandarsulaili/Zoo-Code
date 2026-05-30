@@ -240,6 +240,8 @@ export interface OpenAiCodexRateLimitsMessage {
 	error?: string
 }
 
+export type VerificationLevel = "strict" | "lenient" | "bypass"
+
 export type ExtensionState = Pick<
 	GlobalSettings,
 	| "currentApiConfigName"
@@ -310,6 +312,7 @@ export type ExtensionState = Pick<
 	| "requestDelaySeconds"
 	| "showWorktreesInHomeScreen"
 	| "disabledTools"
+	| "verificationLevel"
 > & {
 	lockApiConfigAcrossModes?: boolean
 	version: string

@@ -26,6 +26,7 @@ export const EXPERIMENT_IDS = {
 	REQUIREMENTS_VERIFICATION: "requirementsVerification",
 	RECOVERY_CONTEXT: "recoveryContext",
 	SELF_IMPROVING_SPECIALIZED_SKILLS: "selfImprovingSpecializedSkills",
+	TASK_PATTERN_LEARNING: "taskPatternLearning",
 } as const satisfies Record<string, ExperimentId>
 
 type ExperimentKey = Keys<typeof EXPERIMENT_IDS>
@@ -60,6 +61,7 @@ export const experimentConfigsMap: Record<ExperimentKey, ExperimentConfig> = {
 	REQUIREMENTS_VERIFICATION: { enabled: true },
 	RECOVERY_CONTEXT: { enabled: true },
 	SELF_IMPROVING_SPECIALIZED_SKILLS: { enabled: true },
+	TASK_PATTERN_LEARNING: { enabled: true },
 }
 
 export const experimentDefault = Object.fromEntries(
