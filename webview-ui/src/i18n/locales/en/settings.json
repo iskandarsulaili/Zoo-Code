@@ -855,7 +855,7 @@
             "selfImproving": "Self-Improving",
             "selfImprovingDescription": "Enable background learning from task outcomes to improve prompt guidance, tool preferences, and error avoidance over time.",
             "verification": "Verification",
-            "verificationDescription": "Configure code quality verification and requirements tracking behavior.",
+            "verificationDescription": "Configure code quality, requirements, and intent verification to ensure task completion quality.",
             "memory": "Memory & Persistence",
             "memoryDescription": "Configure memory backends and persistence settings for agent state across sessions.",
             "ui": "UI & Editing",
@@ -1006,11 +1006,11 @@
         },
         "VERIFICATION_ENGINE": {
         	"name": "Verification Engine",
-        	"description": "Verifies code changes match user intent before allowing task completion"
+        	"description": "Verifies code changes and user requirements match intent before allowing task completion"
         },
         "verification": {
         	"enableVerification": "Enable Verification",
-        	"enableVerification.description": "Master toggle for all verification features. When disabled, both code quality verification and requirements verification are skipped."
+        	"enableVerification.description": "Master toggle for all verification features. When disabled, code quality verification, requirements verification, and intent verification are skipped."
         },
         "RECOVERY_CONTEXT": {
             "name": "Recovery Context",
@@ -1018,7 +1018,7 @@
         },
         "REQUIREMENTS_VERIFICATION": {
             "name": "Requirements Verification",
-            "description": "Tracks and verifies all user requirements are fulfilled before completion"
+            "description": "Tracks and verifies all explicit user requirements and implicit intent are fulfilled before completion"
         }
     },
     "promptCaching": {

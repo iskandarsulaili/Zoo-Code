@@ -605,6 +605,7 @@ export async function presentAssistantMessage(cline: Task) {
 					)
 				} catch (error) {
 					cline.consecutiveMistakeCount++
+					cline.recordToolError(block.name, (error as Error).message, cline.consecutiveMistakeCount)
 					// For validation errors (unknown tool, tool not allowed for mode), we need to:
 					// 1. Send a tool_result with the error (required for native tool calling)
 					// 2. NOT set didAlreadyUseTool = true (the tool was never executed, just failed validation)
@@ -618,7 +619,7 @@ export async function presentAssistantMessage(cline: Task) {
 						content: typeof errorContent === "string" ? errorContent : "(validation error)",
 						is_error: true,
 					})
-
+	
 					break
 				}
 			}

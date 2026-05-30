@@ -123,6 +123,15 @@ export class AutoModeOrchestrator {
 	recordFailure(toolName?: string, errorMessage?: string): void {
 		this.lastFailureTool = toolName ?? this.lastFailureTool
 		this.lastFailureMessage = errorMessage ?? this.lastFailureMessage
+		this.failureCount++
+	}
+
+	/**
+	 * Trigger auto-heal assessment immediately (not just on task completion).
+	 * Used when repeated validation errors are detected mid-task.
+	 */
+	async runAutoHealNow(): Promise<void> {
+		await this.autoHeal()
 	}
 
 	/**
@@ -159,6 +168,36 @@ export class AutoModeOrchestrator {
 
 		this.failureCount++
 		this.logger.appendLine(`[AutoMode] Auto-heal: failure #${this.failureCount} detected, attempting recovery`)
+
+		// --- Strategy 0: Tool restriction errors (mode-level tool restrictions) ---
+		// These are definitive errors — retrying won't help. Inject recovery context immediately.
+		if (this.lastFailureMessage && this.toolErrorHealer) {
+			const restrictionFix = this.toolErrorHealer.getToolRestrictionFix(this.lastFailureMessage)
+			if (restrictionFix) {
+				this.logger.appendLine(`[AutoMode] Tool restriction detected: ${this.lastFailureMessage}`)
+				this.logger.appendLine(`[AutoMode] Recovery suggestion: ${restrictionFix.suggestion}`)
+				this.failureCount = 0
+				// Signal strategy change to break the loop
+				this.logger.appendLine(`[AutoMode] Injecting recovery signal for tool restriction`)
+				return
+			}
+		}
+
+		// --- Strategy 0.5: Loop detection — same validation error repeated ---
+		// If failureCount >= 3 and the message matches a validation error, skip Strategy 1
+		// (which would just re-apply the same auto-correct that didn't work)
+		if (this.failureCount >= 3 && this.lastFailureMessage) {
+			const isMissingParam = this.lastFailureMessage.includes("Missing required parameter")
+			const isValidationError = this.lastFailureMessage.includes("must be") ||
+									  this.lastFailureMessage.includes("required") ||
+									  this.lastFailureMessage.includes("without value for")
+			if (isMissingParam || isValidationError) {
+				this.logger.appendLine(`[AutoMode] LOOP DETECTED: ${this.failureCount} consecutive failures with "${this.lastFailureTool}"`)
+				this.logger.appendLine(`[AutoMode] Skipping auto-correction — repeated same fix failed. Injecting strategy change.`)
+				this.failureCount = 0
+				return
+			}
+		}
 
 		// Strategy 1: Tool parameter error → use ToolErrorHealer for known fixes
 		if (

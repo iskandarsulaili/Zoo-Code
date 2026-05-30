@@ -150,6 +150,7 @@ export class TrustService {
 	 */
 	resetConsecutiveCounter(): void {
 		this.consecutiveActions = 0
+		this.taskCompleted = false
 	}
 
 	/**

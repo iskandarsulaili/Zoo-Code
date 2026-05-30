@@ -58,6 +58,35 @@ const KNOWN_TOOL_REQUIREMENTS: Record<string, { param: string; defaultValue?: st
 	],
 }
 
+/**
+ * Known fix patterns for tool restriction errors (mode-level restrictions, not param errors).
+ * Keyed by regex pattern matched against the error message.
+ */
+const TOOL_RESTRICTION_FIXES: Array<{
+	pattern: RegExp
+	suggestion: string
+	autoCorrectable: boolean
+}> = [
+	{
+		pattern: /Tool "([^"]+)" is not allowed in mode "([^"]+)"/i,
+		suggestion:
+			'Tool restriction detected. Consider delegating the task to an appropriate mode by using the `new_task` tool or switching to a mode that has access to this tool.',
+		autoCorrectable: false,
+	},
+	{
+		pattern: /Unknown tool "([^"]+)"/i,
+		suggestion:
+			'Unknown tool name. Verify the tool name is correct and the tool is available in the current mode configuration.',
+		autoCorrectable: false,
+	},
+	{
+		pattern: /can only edit files matching pattern/i,
+		suggestion:
+			'File path restriction detected. Try using `read_file` and `search_files` for reading, or switch to a mode that has access to the target file paths.',
+		autoCorrectable: false,
+	},
+]
+
 export class ToolErrorHealer {
 	private logger: Logger
 	private config: ToolErrorHealerConfig
@@ -88,6 +117,14 @@ export class ToolErrorHealer {
 			return null
 		}
 
+		// Check restriction patterns first (mode-level, not param-level)
+		if (errorMessage) {
+			const restrictionFix = this.getToolRestrictionFix(errorMessage)
+			if (restrictionFix) {
+				return `Suggestion: ${restrictionFix.suggestion}`
+			}
+		}
+
 		// Try to extract missing parameter name from common error patterns
 		const paramMatch = errorMessage.match(/parameter\s+'([^']+)'/i)
 		const missingParam = paramMatch?.[1]
@@ -107,6 +144,20 @@ export class ToolErrorHealer {
 		}
 
 		return `Suggestion: ${req.hint}`
+	}
+
+	/**
+	 * Check if an error message matches a known tool restriction pattern.
+	 * Returns a healing suggestion if matched, null otherwise.
+	 */
+	getToolRestrictionFix(errorMessage: string): { suggestion: string; autoCorrectable: boolean } | null {
+		if (!errorMessage) return null
+		for (const fix of TOOL_RESTRICTION_FIXES) {
+			if (fix.pattern.test(errorMessage)) {
+				return { suggestion: fix.suggestion, autoCorrectable: fix.autoCorrectable }
+			}
+		}
+		return null
 	}
 
 	/**

@@ -111,6 +111,7 @@ describe("AutoModeOrchestrator", () => {
 	describe("autoHeal — ToolErrorHealer integration", () => {
 		it("should call ToolErrorHealer when missing parameter error detected", async () => {
 			const healer: Partial<ToolErrorHealer> = {
+				getToolRestrictionFix: vi.fn().mockReturnValue(null),
 				handleToolError: vi.fn().mockReturnValue({
 					fix: "Provide a valid regex pattern for the search",
 					autoCorrectable: true,
@@ -131,6 +132,7 @@ describe("AutoModeOrchestrator", () => {
 
 		it("should not call ToolErrorHealer when no missing parameter error", async () => {
 			const healer: Partial<ToolErrorHealer> = {
+				getToolRestrictionFix: vi.fn().mockReturnValue(null),
 				handleToolError: vi.fn(),
 			}
 			const orch = new AutoModeOrchestrator(mockLogger as any, undefined, healer as ToolErrorHealer)
@@ -145,6 +147,7 @@ describe("AutoModeOrchestrator", () => {
 
 		it("should fall through when ToolErrorHealer returns null", async () => {
 			const healer: Partial<ToolErrorHealer> = {
+				getToolRestrictionFix: vi.fn().mockReturnValue(null),
 				handleToolError: vi.fn().mockReturnValue(null),
 			}
 			const orch = new AutoModeOrchestrator(mockLogger as any, undefined, healer as ToolErrorHealer)

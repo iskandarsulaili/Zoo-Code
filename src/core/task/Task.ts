@@ -1909,6 +1909,12 @@ export class Task extends EventEmitter<TaskEvents> implements TaskLike {
 		}
 		this._started = true
 
+		// Reset TrustService taskCompleted latch for new task
+		const provider = this.providerRef.deref()
+		if (provider?.trustService?.taskCompleted) {
+			provider.trustService.taskCompleted = false
+		}
+
 		const { task, images } = this.metadata
 
 		if (task || images) {
@@ -4746,7 +4752,7 @@ export class Task extends EventEmitter<TaskEvents> implements TaskLike {
 		return sim.preventionEngine.generatePreventionMessage(context)
 	}
 
-	public recordToolError(toolName: ToolName, error?: string) {
+	public recordToolError(toolName: ToolName, error?: string, consecutiveCount?: number) {
 		if (!this.toolUsage[toolName]) {
 			this.toolUsage[toolName] = { attempts: 0, failures: 0 }
 		}
@@ -4757,11 +4763,21 @@ export class Task extends EventEmitter<TaskEvents> implements TaskLike {
 			this.emit(RooCodeEventName.TaskToolFailed, this.taskId, toolName, error)
 		}
 
+		const sim = this.providerRef.deref()?.getSelfImprovingManager?.()
+
 		// Record tool error in insights engine for session analysis
-		this.providerRef.deref()?.getSelfImprovingManager?.()?.insightsEngine?.recordError(toolName, error)
+		sim?.insightsEngine?.recordError(toolName, error)
+
+		// Record tool error in auto-mode orchestrator for auto-heal decisions
+		sim?.autoModeOrchestrator?.recordFailure(toolName, error)
+
+		// Escalate if this is a repeated validation error (3+ consecutive same-tool failures)
+		if (consecutiveCount !== undefined && consecutiveCount >= 3) {
+			const sim = this.providerRef.deref()?.getSelfImprovingManager?.()
+			sim?.autoModeOrchestrator?.recordFailure(toolName, error)
+		}
 
 		// Record tool error in prevention engine for cascade tracking
-		const sim = this.providerRef.deref()?.getSelfImprovingManager?.()
 		if (sim?.preventionEngine) {
 			sim.preventionEngine.recordToolResult(toolName, error ?? "unknown error", {})
 		}

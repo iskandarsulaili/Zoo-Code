@@ -80,7 +80,7 @@ export class SelfImprovingManager {
 	private memoryBackendType: "builtin" | "agentmemory"
 	private agentMemoryUrl: string | undefined
 	private storageBasePath: string
-	private autoModeOrchestrator: AutoModeOrchestrator
+	public autoModeOrchestrator: AutoModeOrchestrator
 	private modeFactory: ModeFactoryService
 	private reviewTeam: ReviewTeamService
 	public questionEvaluator: QuestionEvaluatorService
@@ -536,7 +536,7 @@ export class SelfImprovingManager {
 			}
 
 			const actions = this.runtime.improvementApplier.generateActions([
-				...this.runtime.store.getPatterns(),
+				...approvedPatterns,
 			] as LearnedPattern[])
 			const safeActions = Array.isArray(actions) ? actions : []
 			for (const action of safeActions) {
