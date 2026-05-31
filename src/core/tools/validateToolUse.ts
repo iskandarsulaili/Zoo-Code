@@ -11,7 +11,7 @@ import { TOOL_GROUPS, ALWAYS_AVAILABLE_TOOLS, TOOL_ALIASES } from "../../shared/
  * Note: This does NOT check if the tool is allowed for a specific mode,
  * only that the tool actually exists.
  */
-export function isValidToolName(toolName: string, experiments?: Record<string, boolean>): toolName is ToolName {
+export function isValidToolName(toolName: string, experiments?: Partial<import("@roo-code/types").Experiments>): toolName is ToolName {
 	// Check if it's a valid static tool
 	if ((validToolNames as readonly string[]).includes(toolName)) {
 		return true

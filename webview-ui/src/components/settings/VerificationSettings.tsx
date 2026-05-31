@@ -1,5 +1,6 @@
 import { useMemo, useCallback } from "react"
 import { VSCodeCheckbox } from "@vscode/webview-ui-toolkit/react"
+import { Input } from "@/components/ui"
 
 import type { Experiments, ModeConfig, VerificationLevel } from "@roo-code/types"
 
@@ -21,12 +22,43 @@ type VerificationSettingsProps = {
 	setVerificationLevels: (levels: Record<string, VerificationLevel>) => void
 	experiments: Experiments
 	setExperimentEnabled: SetExperimentEnabled
+
+	// Gate config
+	verificationCheckBuild?: boolean
+	verificationCheckLint?: boolean
+	verificationCheckTypes?: boolean
+	verificationCheckTests?: boolean
+	verificationBuildCommand?: string
+	verificationLintCommand?: string
+	verificationTypeCheckCommand?: string
+	verificationTestCommand?: string
+	verificationTimeoutMs?: number
+	onVerificationGateChange?: (key: string, value: boolean | string | number) => void
 }
 
 const VERIFICATION_LEVEL_OPTIONS: { value: VerificationLevel; label: string }[] = [
 	{ value: "strict", label: "Strict — All requirements must be verified" },
 	{ value: "lenient", label: "Lenient — Log warnings, don't block" },
 	{ value: "bypass", label: "Bypass — Skip requirements verification" },
+]
+
+type GateDef = {
+	key: string
+	label: string
+	checkKey: string
+	cmdKey: string
+}
+
+const GATES: GateDef[] = [
+	{ key: "build", label: "Build", checkKey: "verificationCheckBuild", cmdKey: "verificationBuildCommand" },
+	{ key: "lint", label: "Lint", checkKey: "verificationCheckLint", cmdKey: "verificationLintCommand" },
+	{
+		key: "type-check",
+		label: "Type Check",
+		checkKey: "verificationCheckTypes",
+		cmdKey: "verificationTypeCheckCommand",
+	},
+	{ key: "tests", label: "Tests", checkKey: "verificationCheckTests", cmdKey: "verificationTestCommand" },
 ]
 
 export const VerificationSettings = ({
@@ -39,6 +71,16 @@ export const VerificationSettings = ({
 	setVerificationLevels,
 	experiments,
 	setExperimentEnabled,
+	verificationCheckBuild,
+	verificationCheckLint,
+	verificationCheckTypes,
+	verificationCheckTests,
+	verificationBuildCommand,
+	verificationLintCommand,
+	verificationTypeCheckCommand,
+	verificationTestCommand,
+	verificationTimeoutMs,
+	onVerificationGateChange,
 }: VerificationSettingsProps) => {
 	const allModes = useMemo(() => getAllModes(customModes), [customModes])
 
@@ -46,10 +88,8 @@ export const VerificationSettings = ({
 	const levels = useMemo(() => verificationLevels ?? {}, [verificationLevels])
 
 	// Master toggle: enabled when either verification engine or requirements verification is on
-	const verificationEngineEnabled =
-		experiments[EXPERIMENT_IDS.VERIFICATION_ENGINE] ?? false
-	const requirementsVerificationEnabled =
-		experiments[EXPERIMENT_IDS.REQUIREMENTS_VERIFICATION] ?? false
+	const verificationEngineEnabled = experiments[EXPERIMENT_IDS.VERIFICATION_ENGINE] ?? false
+	const requirementsVerificationEnabled = experiments[EXPERIMENT_IDS.REQUIREMENTS_VERIFICATION] ?? false
 	const masterEnabled = verificationEngineEnabled || requirementsVerificationEnabled
 
 	const handleMasterToggle = useCallback(
@@ -62,9 +102,7 @@ export const VerificationSettings = ({
 
 	const handleModeToggle = useCallback(
 		(slug: string, checked: boolean) => {
-			const updated = checked
-				? [...(lenientModes ?? []), slug]
-				: (lenientModes ?? []).filter((m) => m !== slug)
+			const updated = checked ? [...(lenientModes ?? []), slug] : (lenientModes ?? []).filter((m) => m !== slug)
 			setLenientModes(updated)
 		},
 		[lenientModes, setLenientModes],
@@ -85,9 +123,7 @@ export const VerificationSettings = ({
 				section="experimental"
 				label="Enable Verification"
 				description="Master toggle for all verification features. When disabled, both code quality verification and requirements verification are skipped.">
-				<VSCodeCheckbox
-					checked={masterEnabled}
-					onChange={(e: any) => handleMasterToggle(e.target.checked)} />
+				<VSCodeCheckbox checked={masterEnabled} onChange={(e: any) => handleMasterToggle(e.target.checked)} />
 			</SearchableSetting>
 
 			{/* Default Verification Level */}
@@ -120,36 +156,98 @@ export const VerificationSettings = ({
 					Override verification behavior for specific modes. Checked modes use lenient/bypass instead of the
 					default level.
 				</span>
-				{allModes.map((mode) => {
-					const isLenient = lenientSet.has(mode.slug)
-					const modeLevel = levels[mode.slug] ?? verificationLevel ?? "strict"
-
+				{allModes.map((m) => {
+					const slug = m.slug
+					const isLenient = lenientSet.has(slug)
+					const level = levels[slug] ?? verificationLevel ?? "strict"
 					return (
-						<div
-							key={mode.slug}
-							className="flex items-center gap-3 py-1.5 px-2 rounded hover:bg-vscode-list-hoverBackground">
+						<div key={slug} className="flex items-center gap-2">
 							<VSCodeCheckbox
 								checked={isLenient}
-								disabled={!masterEnabled}
-								onChange={(e: any) => handleModeToggle(mode.slug, e.target.checked)}>
-								{mode.name ?? mode.slug}
+								onChange={(e: any) => handleModeToggle(slug, e.target.checked)}>
+								{slug}
 							</VSCodeCheckbox>
-							{isLenient && (
-								<Select
-									value={modeLevel}
-									onValueChange={(value: VerificationLevel) => handleLevelChange(mode.slug, value)}
+							<Select value={level} onValueChange={(v: VerificationLevel) => handleLevelChange(slug, v)}>
+								<SelectTrigger
+									className="w-[160px]"
+									data-testid={`experimental-verification-level-${slug}`}>
+									<SelectValue />
+								</SelectTrigger>
+								<SelectContent>
+									{VERIFICATION_LEVEL_OPTIONS.map((opt) => (
+										<SelectItem key={opt.value} value={opt.value}>
+											{opt.label}
+										</SelectItem>
+									))}
+								</SelectContent>
+							</Select>
+						</div>
+					)
+				})}
+			</div>
+
+			{/* --- Code Quality Gates --- */}
+			<div className={`flex flex-col gap-3 mt-4 ${!masterEnabled ? "opacity-50 pointer-events-none" : ""}`}>
+				<span className="text-vscode-foreground text-sm font-medium">Code Quality Gates</span>
+				<span className="text-vscode-descriptionForeground text-xs mb-1">
+					Configure which checks run on attempt_completion. The engine auto-detects your project language and
+					fills default commands — override them here.
+				</span>
+
+				{/* Timeout */}
+				<SearchableSetting
+					settingId="experimental-verification-timeout"
+					section="experimental"
+					label="Gate Timeout (ms)"
+					description="Max time per gate in milliseconds (default: 60000)">
+					<Input
+						value={String(verificationTimeoutMs ?? 60000)}
+						onChange={(e: any) =>
+							onVerificationGateChange?.("verificationTimeoutMs", parseInt(e.target.value) || 60000)
+						}
+						disabled={!masterEnabled}
+						type="number"
+						style={{ width: "120px" }}
+					/>
+				</SearchableSetting>
+
+				{GATES.map((gate) => {
+					const checked =
+						gate.checkKey === "verificationCheckBuild"
+							? (verificationCheckBuild ?? false)
+							: gate.checkKey === "verificationCheckLint"
+								? (verificationCheckLint ?? false)
+								: gate.checkKey === "verificationCheckTypes"
+									? (verificationCheckTypes ?? false)
+									: (verificationCheckTests ?? false)
+
+					const command =
+						gate.cmdKey === "verificationBuildCommand"
+							? (verificationBuildCommand ?? "")
+							: gate.cmdKey === "verificationLintCommand"
+								? (verificationLintCommand ?? "")
+								: gate.cmdKey === "verificationTypeCheckCommand"
+									? (verificationTypeCheckCommand ?? "")
+									: (verificationTestCommand ?? "")
+
+					return (
+						<div key={gate.key} className="flex flex-col gap-1 mb-2">
+							<div className="flex items-center gap-2">
+								<VSCodeCheckbox
+									checked={checked}
+									onChange={(e: any) => onVerificationGateChange?.(gate.checkKey, e.target.checked)}
 									disabled={!masterEnabled}>
-									<SelectTrigger className="w-48" data-testid={`verification-level-${mode.slug}`}>
-										<SelectValue />
-									</SelectTrigger>
-									<SelectContent>
-										{VERIFICATION_LEVEL_OPTIONS.map((opt) => (
-											<SelectItem key={opt.value} value={opt.value}>
-												{opt.label}
-											</SelectItem>
-										))}
-									</SelectContent>
-								</Select>
+									{gate.label}
+								</VSCodeCheckbox>
+							</div>
+							{checked && (
+								<Input
+									value={command}
+									placeholder={getDefaultCommand(gate.key)}
+									onChange={(e: any) => onVerificationGateChange?.(gate.cmdKey, e.target.value)}
+									disabled={!masterEnabled}
+									style={{ width: "100%" }}
+								/>
 							)}
 						</div>
 					)
@@ -157,4 +255,19 @@ export const VerificationSettings = ({
 			</div>
 		</Section>
 	)
+}
+
+function getDefaultCommand(gate: string): string {
+	switch (gate) {
+		case "build":
+			return "npm run build"
+		case "lint":
+			return "npm run lint"
+		case "type-check":
+			return "npm run typecheck"
+		case "tests":
+			return "npm test"
+		default:
+			return ""
+	}
 }

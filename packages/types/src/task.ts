@@ -3,6 +3,7 @@ import { z } from "zod"
 import { RooCodeEventName } from "./events.js"
 import type { RooCodeSettings } from "./global-settings.js"
 import type { ClineMessage, QueuedMessage, TokenUsage } from "./message.js"
+import type { Experiments } from "./experiment.js"
 import type { ToolUsage, ToolName } from "./tool.js"
 import type { TodoItem } from "./todo.js"
 
@@ -87,7 +88,7 @@ export interface CreateTaskOptions {
 	taskId?: string
 	enableCheckpoints?: boolean
 	consecutiveMistakeLimit?: number
-	experiments?: Record<string, boolean>
+	experiments?: Partial<Experiments>
 	initialTodos?: TodoItem[]
 	/** Initial status for the task's history item (e.g., "active" for child tasks) */
 	initialStatus?: "active" | "delegated" | "completed"

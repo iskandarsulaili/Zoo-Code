@@ -78,7 +78,7 @@ export const experimentsSchema = z.object({
 	lenientModes: z.array(z.string()).optional(),
 
 	/**
-	 * Verification level for requirements verification in AttemptCompletionTool.
+	 * Default verification level for requirements verification in AttemptCompletionTool.
 	 * - "strict": All requirements must be verified before completion (default)
 	 * - "lenient": Requirements are tracked but non-blocking — log warnings instead of blocking
 	 * - "bypass": Skip requirements verification entirely
@@ -91,6 +91,25 @@ export const experimentsSchema = z.object({
 	 * Keyed by mode slug, values override the default verificationLevel for that mode.
 	 */
 	verificationLevels: z.record(z.enum(["strict", "lenient", "bypass"])).optional(),
+
+	/** Gate config — whether to run build check */
+	verificationCheckBuild: z.boolean().optional(),
+	/** Gate config — whether to run lint check */
+	verificationCheckLint: z.boolean().optional(),
+	/** Gate config — whether to run type check */
+	verificationCheckTypes: z.boolean().optional(),
+	/** Gate config — whether to run tests */
+	verificationCheckTests: z.boolean().optional(),
+	/** Build command (e.g. "npm run build") */
+	verificationBuildCommand: z.string().optional(),
+	/** Lint command (e.g. "npm run lint") */
+	verificationLintCommand: z.string().optional(),
+	/** Type check command (e.g. "npm run typecheck") */
+	verificationTypeCheckCommand: z.string().optional(),
+	/** Test command (e.g. "npm test") */
+	verificationTestCommand: z.string().optional(),
+	/** Per-gate timeout in ms */
+	verificationTimeoutMs: z.number().min(1000).optional(),
 })
 
 export type Experiments = z.infer<typeof experimentsSchema>

@@ -320,20 +320,26 @@ const SettingsView = forwardRef<SettingsViewRef, SettingsViewProps>(({ onDone, t
 			return { ...prevState, experiments: { ...prevState.experiments, lenientModes: modes } }
 		})
 	}, [])
-const setVerificationLevel = useCallback((level: "strict" | "lenient" | "bypass") => {
-	setCachedState((prevState) => {
-		setChangeDetected(true)
-		return { ...prevState, experiments: { ...prevState.experiments, verificationLevel: level } }
-	})
-}, [])
+	const setVerificationLevel = useCallback((level: "strict" | "lenient" | "bypass") => {
+		setCachedState((prevState) => {
+			setChangeDetected(true)
+			return { ...prevState, experiments: { ...prevState.experiments, verificationLevel: level } }
+		})
+	}, [])
 
-const setVerificationLevels = useCallback((levels: Record<string, "strict" | "lenient" | "bypass">) => {
-	setCachedState((prevState) => {
-		setChangeDetected(true)
-		return { ...prevState, experiments: { ...prevState.experiments, verificationLevels: levels } }
-	})
-}, [])
+	const setVerificationLevels = useCallback((levels: Record<string, "strict" | "lenient" | "bypass">) => {
+		setCachedState((prevState) => {
+			setChangeDetected(true)
+			return { ...prevState, experiments: { ...prevState.experiments, verificationLevels: levels } }
+		})
+	}, [])
 
+	const onVerificationGateChange = useCallback((key: string, value: boolean | string | number) => {
+		setCachedState((prevState) => {
+			setChangeDetected(true)
+			return { ...prevState, experiments: { ...prevState.experiments, [key]: value } }
+		})
+	}, [])
 
 	const setTelemetrySetting = useCallback((setting: TelemetrySetting) => {
 		setCachedState((prevState) => {
@@ -1020,11 +1026,29 @@ const setVerificationLevels = useCallback((levels: Record<string, "strict" | "le
 								setSelfImprovingScope={setSelfImprovingScope}
 								setSelfImprovingAutoSkillsScope={setSelfImprovingAutoSkillsScope}
 								setLenientModes={setLenientModes}
-								verificationLevel={experiments.verificationLevel as "strict" | "lenient" | "bypass" | undefined}
+								verificationLevel={
+									experiments.verificationLevel as "strict" | "lenient" | "bypass" | undefined
+								}
 								setVerificationLevel={setVerificationLevel}
-								verificationLevels={experiments.verificationLevels as Record<string, "strict" | "lenient" | "bypass"> | undefined}
+								verificationLevels={
+									experiments.verificationLevels as
+										| Record<string, "strict" | "lenient" | "bypass">
+										| undefined
+								}
 								setVerificationLevels={setVerificationLevels}
 								customModes={customModes}
+								verificationCheckBuild={experiments.verificationCheckBuild as boolean | undefined}
+								verificationCheckLint={experiments.verificationCheckLint as boolean | undefined}
+								verificationCheckTypes={experiments.verificationCheckTypes as boolean | undefined}
+								verificationCheckTests={experiments.verificationCheckTests as boolean | undefined}
+								verificationBuildCommand={experiments.verificationBuildCommand as string | undefined}
+								verificationLintCommand={experiments.verificationLintCommand as string | undefined}
+								verificationTypeCheckCommand={
+									experiments.verificationTypeCheckCommand as string | undefined
+								}
+								verificationTestCommand={experiments.verificationTestCommand as string | undefined}
+								verificationTimeoutMs={experiments.verificationTimeoutMs as number | undefined}
+								onVerificationGateChange={onVerificationGateChange}
 							/>
 						)}
 
@@ -1065,9 +1089,7 @@ const setVerificationLevels = useCallback((levels: Record<string, "strict" | "le
 											<Input
 												type="text"
 												value={kaizenMiniGoal ?? ""}
-												onChange={(e) =>
-													setCachedStateField("kaizenMiniGoal", e.target.value)
-												}
+												onChange={(e) => setCachedStateField("kaizenMiniGoal", e.target.value)}
 												className="w-48"
 												placeholder=""
 												data-testid="kaizen-mini-goal-input"

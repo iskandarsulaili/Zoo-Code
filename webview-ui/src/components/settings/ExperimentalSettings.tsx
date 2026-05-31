@@ -43,6 +43,17 @@ type ExperimentalSettingsProps = HTMLAttributes<HTMLDivElement> & {
 	verificationLevels?: Record<string, VerificationLevel>
 	setVerificationLevels?: (levels: Record<string, VerificationLevel>) => void
 	customModes?: ModeConfig[]
+	// Gate config
+	verificationCheckBuild?: boolean
+	verificationCheckLint?: boolean
+	verificationCheckTypes?: boolean
+	verificationCheckTests?: boolean
+	verificationBuildCommand?: string
+	verificationLintCommand?: string
+	verificationTypeCheckCommand?: string
+	verificationTestCommand?: string
+	verificationTimeoutMs?: number
+	onVerificationGateChange?: (key: string, value: boolean | string | number) => void
 }
 
 // ── Category definitions ──────────────────────────────────────────────
@@ -90,12 +101,7 @@ const CATEGORIES: ExperimentCategory[] = [
 		key: "infrastructure",
 		labelKey: "settings:experimental.categories.infrastructure",
 		descriptionKey: "settings:experimental.categories.infrastructureDescription",
-		experimentKeys: [
-			"PREVENTION_ENGINE",
-			"CASCADE_TRACKER",
-			"RESILIENCE_SERVICE",
-			"TOOL_ERROR_HEALER",
-		],
+		experimentKeys: ["PREVENTION_ENGINE", "CASCADE_TRACKER", "RESILIENCE_SERVICE", "TOOL_ERROR_HEALER"],
 	},
 	{
 		key: "ui",
@@ -166,8 +172,7 @@ const SimpleExperimentToggle = ({
 	if (!config) return null
 
 	const label = t(`settings:experimental.${experimentKey}.name`)
-	const enabled =
-		experiments[EXPERIMENT_IDS[experimentKey as keyof typeof EXPERIMENT_IDS]] ?? false
+	const enabled = experiments[EXPERIMENT_IDS[experimentKey as keyof typeof EXPERIMENT_IDS]] ?? false
 
 	return (
 		<SearchableSetting
@@ -178,10 +183,7 @@ const SimpleExperimentToggle = ({
 				experimentKey={experimentKey}
 				enabled={enabled}
 				onChange={(enabled) =>
-					setExperimentEnabled(
-						EXPERIMENT_IDS[experimentKey as keyof typeof EXPERIMENT_IDS],
-						enabled,
-					)
+					setExperimentEnabled(EXPERIMENT_IDS[experimentKey as keyof typeof EXPERIMENT_IDS], enabled)
 				}
 			/>
 		</SearchableSetting>
@@ -218,14 +220,11 @@ const SelfImprovingSection = ({
 	const autoModeEnabled = experiments[EXPERIMENT_IDS.SELF_IMPROVING_AUTO_MODE] ?? false
 	const reviewTeamEnabled = experiments[EXPERIMENT_IDS.SELF_IMPROVING_REVIEW_TEAM] ?? false
 	const fullTrustEnabled = experiments[EXPERIMENT_IDS.SELF_IMPROVING_FULL_TRUST] ?? false
-	const questionEvaluationEnabled =
-		experiments[EXPERIMENT_IDS.SELF_IMPROVING_QUESTION_EVALUATION] ?? false
+	const questionEvaluationEnabled = experiments[EXPERIMENT_IDS.SELF_IMPROVING_QUESTION_EVALUATION] ?? false
 	const promptQualityEnabled = experiments[EXPERIMENT_IDS.SELF_IMPROVING_PROMPT_QUALITY] ?? false
-	const toolPreferenceEnabled =
-		experiments[EXPERIMENT_IDS.SELF_IMPROVING_TOOL_PREFERENCE] ?? false
+	const toolPreferenceEnabled = experiments[EXPERIMENT_IDS.SELF_IMPROVING_TOOL_PREFERENCE] ?? false
 	const skillMergeEnabled = experiments[EXPERIMENT_IDS.SELF_IMPROVING_SKILL_MERGE] ?? false
-	const persistCountsEnabled =
-		experiments[EXPERIMENT_IDS.SELF_IMPROVING_PERSIST_COUNTS] ?? false
+	const persistCountsEnabled = experiments[EXPERIMENT_IDS.SELF_IMPROVING_PERSIST_COUNTS] ?? false
 	const codeIndexEnabled = experiments[EXPERIMENT_IDS.SELF_IMPROVING_CODE_INDEX] ?? false
 	const currentMemoryBackend = memoryBackend ?? "builtin"
 	const currentSelfImprovingScope = selfImprovingScope ?? "global"
@@ -251,9 +250,7 @@ const SelfImprovingSection = ({
 							</label>
 							<Select
 								value={currentSelfImprovingScope}
-								onValueChange={(value) =>
-									setSelfImprovingScope(value as "workspace" | "global")
-								}
+								onValueChange={(value) => setSelfImprovingScope(value as "workspace" | "global")}
 								data-testid="self-improving-scope-select">
 								<SelectTrigger className="w-full">
 									<SelectValue placeholder={t("settings:common.select")} />
@@ -278,9 +275,7 @@ const SelfImprovingSection = ({
 					<ExperimentalFeature
 						experimentKey="SELF_IMPROVING_AUTO_SKILLS"
 						enabled={autoSkillsEnabled}
-						onChange={(enabled) =>
-							setExperimentEnabled(EXPERIMENT_IDS.SELF_IMPROVING_AUTO_SKILLS, enabled)
-						}
+						onChange={(enabled) => setExperimentEnabled(EXPERIMENT_IDS.SELF_IMPROVING_AUTO_SKILLS, enabled)}
 						checkboxTestId="experimental-self-improving-auto-skills-checkbox"
 					/>
 					{autoSkillsEnabled && setSelfImprovingAutoSkillsScope && (
@@ -325,9 +320,7 @@ const SelfImprovingSection = ({
 							</label>
 							<Select
 								value={currentMemoryBackend}
-								onValueChange={(value) =>
-									setMemoryBackend(value as "builtin" | "agentmemory")
-								}
+								onValueChange={(value) => setMemoryBackend(value as "builtin" | "agentmemory")}
 								data-testid="self-improving-memory-backend-select">
 								<SelectTrigger className="w-full">
 									<SelectValue placeholder={t("settings:common.select")} />
@@ -363,25 +356,19 @@ const SelfImprovingSection = ({
 					<ExperimentalFeature
 						experimentKey="SELF_IMPROVING_AUTO_MODE"
 						enabled={autoModeEnabled}
-						onChange={(enabled) =>
-							setExperimentEnabled(EXPERIMENT_IDS.SELF_IMPROVING_AUTO_MODE, enabled)
-						}
+						onChange={(enabled) => setExperimentEnabled(EXPERIMENT_IDS.SELF_IMPROVING_AUTO_MODE, enabled)}
 						checkboxTestId="experimental-self-improving-auto-mode-checkbox"
 					/>
 					<ExperimentalFeature
 						experimentKey="SELF_IMPROVING_REVIEW_TEAM"
 						enabled={reviewTeamEnabled}
-						onChange={(enabled) =>
-							setExperimentEnabled(EXPERIMENT_IDS.SELF_IMPROVING_REVIEW_TEAM, enabled)
-						}
+						onChange={(enabled) => setExperimentEnabled(EXPERIMENT_IDS.SELF_IMPROVING_REVIEW_TEAM, enabled)}
 						checkboxTestId="experimental-self-improving-review-team-checkbox"
 					/>
 					<ExperimentalFeature
 						experimentKey="SELF_IMPROVING_FULL_TRUST"
 						enabled={fullTrustEnabled}
-						onChange={(enabled) =>
-							setExperimentEnabled(EXPERIMENT_IDS.SELF_IMPROVING_FULL_TRUST, enabled)
-						}
+						onChange={(enabled) => setExperimentEnabled(EXPERIMENT_IDS.SELF_IMPROVING_FULL_TRUST, enabled)}
 						checkboxTestId="experimental-self-improving-full-trust-checkbox"
 					/>
 					<ExperimentalFeature
@@ -411,9 +398,7 @@ const SelfImprovingSection = ({
 					<ExperimentalFeature
 						experimentKey="SELF_IMPROVING_SKILL_MERGE"
 						enabled={skillMergeEnabled}
-						onChange={(enabled) =>
-							setExperimentEnabled(EXPERIMENT_IDS.SELF_IMPROVING_SKILL_MERGE, enabled)
-						}
+						onChange={(enabled) => setExperimentEnabled(EXPERIMENT_IDS.SELF_IMPROVING_SKILL_MERGE, enabled)}
 						checkboxTestId="experimental-self-improving-skill-merge-checkbox"
 					/>
 					<ExperimentalFeature
@@ -427,25 +412,19 @@ const SelfImprovingSection = ({
 					<ExperimentalFeature
 						experimentKey="SELF_IMPROVING_CODE_INDEX"
 						enabled={codeIndexEnabled}
-						onChange={(enabled) =>
-							setExperimentEnabled(EXPERIMENT_IDS.SELF_IMPROVING_CODE_INDEX, enabled)
-						}
+						onChange={(enabled) => setExperimentEnabled(EXPERIMENT_IDS.SELF_IMPROVING_CODE_INDEX, enabled)}
 						checkboxTestId="experimental-self-improving-code-index-checkbox"
 					/>
 					<ExperimentalFeature
 						experimentKey="ONE_SHOT_ORCHESTRATOR"
 						enabled={experiments[EXPERIMENT_IDS.ONE_SHOT_ORCHESTRATOR] ?? false}
-						onChange={(enabled) =>
-							setExperimentEnabled(EXPERIMENT_IDS.ONE_SHOT_ORCHESTRATOR, enabled)
-						}
+						onChange={(enabled) => setExperimentEnabled(EXPERIMENT_IDS.ONE_SHOT_ORCHESTRATOR, enabled)}
 						checkboxTestId="experimental-one-shot-orchestrator-checkbox"
 					/>
 					<ExperimentalFeature
 						experimentKey="KAIZEN_ORCHESTRATOR"
 						enabled={experiments[EXPERIMENT_IDS.KAIZEN_ORCHESTRATOR] ?? false}
-						onChange={(enabled) =>
-							setExperimentEnabled(EXPERIMENT_IDS.KAIZEN_ORCHESTRATOR, enabled)
-						}
+						onChange={(enabled) => setExperimentEnabled(EXPERIMENT_IDS.KAIZEN_ORCHESTRATOR, enabled)}
 						checkboxTestId="experimental-kaizen-orchestrator-checkbox"
 					/>
 					<SelfImprovingStatus />
@@ -479,10 +458,7 @@ const ImageGenerationSection = ({
 	const label = t("settings:experimental.IMAGE_GENERATION.name")
 
 	return (
-		<SearchableSetting
-			settingId="experimental-image-generation"
-			section="experimental"
-			label={label}>
+		<SearchableSetting settingId="experimental-image-generation" section="experimental" label={label}>
 			<ImageGenerationSettings
 				enabled={experiments[EXPERIMENT_IDS.IMAGE_GENERATION] ?? false}
 				onChange={(enabled) => setExperimentEnabled(EXPERIMENT_IDS.IMAGE_GENERATION, enabled)}
@@ -509,10 +485,7 @@ const CustomToolsSection = ({
 	const label = t("settings:experimental.CUSTOM_TOOLS.name")
 
 	return (
-		<SearchableSetting
-			settingId="experimental-custom-tools"
-			section="experimental"
-			label={label}>
+		<SearchableSetting settingId="experimental-custom-tools" section="experimental" label={label}>
 			<CustomToolsSettings
 				enabled={experiments[EXPERIMENT_IDS.CUSTOM_TOOLS] ?? false}
 				onChange={(enabled) => setExperimentEnabled(EXPERIMENT_IDS.CUSTOM_TOOLS, enabled)}
@@ -537,12 +510,8 @@ const CategoryGroup = ({
 
 	return (
 		<div className="space-y-2">
-			<h4 className="text-sm font-semibold text-vscode-foreground mt-4 mb-1">
-				{t(category.labelKey)}
-			</h4>
-			<p className="text-xs text-vscode-descriptionForeground mb-2">
-				{t(category.descriptionKey)}
-			</p>
+			<h4 className="text-sm font-semibold text-vscode-foreground mt-4 mb-1">{t(category.labelKey)}</h4>
+			<p className="text-xs text-vscode-descriptionForeground mb-2">{t(category.descriptionKey)}</p>
 			{category.experimentKeys.map((key) => (
 				<div key={key}>{renderInline(key)}</div>
 			))}
@@ -577,6 +546,17 @@ export const ExperimentalSettings = ({
 	verificationLevels,
 	setVerificationLevels,
 	customModes,
+	// Gate config
+	verificationCheckBuild,
+	verificationCheckLint,
+	verificationCheckTypes,
+	verificationCheckTests,
+	verificationBuildCommand,
+	verificationLintCommand,
+	verificationTypeCheckCommand,
+	verificationTestCommand,
+	verificationTimeoutMs,
+	onVerificationGateChange,
 	className,
 	...props
 }: ExperimentalSettingsProps) => {
@@ -617,12 +597,7 @@ export const ExperimentalSettings = ({
 			)
 		}
 		if (key === "CUSTOM_TOOLS") {
-			return (
-				<CustomToolsSection
-					experiments={experiments}
-					setExperimentEnabled={setExperimentEnabled}
-				/>
-			)
+			return <CustomToolsSection experiments={experiments} setExperimentEnabled={setExperimentEnabled} />
 		}
 		return (
 			<SimpleExperimentToggle
@@ -667,6 +642,16 @@ export const ExperimentalSettings = ({
 					setVerificationLevel={setVerificationLevel!}
 					setVerificationLevels={setVerificationLevels!}
 					experiments={experiments}
+					verificationCheckBuild={verificationCheckBuild}
+					verificationCheckLint={verificationCheckLint}
+					verificationCheckTypes={verificationCheckTypes}
+					verificationCheckTests={verificationCheckTests}
+					verificationBuildCommand={verificationBuildCommand}
+					verificationLintCommand={verificationLintCommand}
+					verificationTypeCheckCommand={verificationTypeCheckCommand}
+					verificationTestCommand={verificationTestCommand}
+					verificationTimeoutMs={verificationTimeoutMs}
+					onVerificationGateChange={onVerificationGateChange}
 					setExperimentEnabled={setExperimentEnabled}
 				/>
 			</Section>

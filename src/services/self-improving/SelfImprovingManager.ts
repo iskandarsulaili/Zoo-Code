@@ -174,6 +174,32 @@ export class SelfImprovingManager {
 			this.resilienceService,
 		)
 		this.autoModeOrchestrator.setModeFactory(this.modeFactory)
+		this.syncVerificationConfig(experiments)
+	}
+
+	/**
+	 * Sync verification gate config from experiments and auto-detect project language.
+	 * Call after construction and whenever experiments change.
+	 */
+	async syncVerificationConfig(experiments?: Experiments): Promise<void> {
+		const ex = experiments ?? this.getExperiments()
+		if (!ex) return
+
+		// Apply user-configured gate overrides from experiments
+		this.verificationEngine.updateConfig({
+			checkBuild: ex.verificationCheckBuild ?? this.verificationEngine.getConfig().checkBuild,
+			checkLint: ex.verificationCheckLint ?? this.verificationEngine.getConfig().checkLint,
+			checkTypes: ex.verificationCheckTypes ?? this.verificationEngine.getConfig().checkTypes,
+			checkTests: ex.verificationCheckTests ?? this.verificationEngine.getConfig().checkTests,
+			buildCommand: ex.verificationBuildCommand ?? this.verificationEngine.getConfig().buildCommand,
+			lintCommand: ex.verificationLintCommand ?? this.verificationEngine.getConfig().lintCommand,
+			typeCheckCommand: ex.verificationTypeCheckCommand ?? this.verificationEngine.getConfig().typeCheckCommand,
+			testCommand: ex.verificationTestCommand ?? this.verificationEngine.getConfig().testCommand,
+			gateTimeoutMs: ex.verificationTimeoutMs ?? this.verificationEngine.getConfig().gateTimeoutMs,
+		})
+
+		// Auto-detect project and fill any remaining gaps
+		await this.verificationEngine.applyAutoProfile()
 	}
 
 	/**
@@ -425,9 +451,7 @@ export class SelfImprovingManager {
 			// Log code index stats if available
 			const codeIndexInfo = this.runtime.codeIndexAdapter.getInfo()
 			if (codeIndexInfo.available) {
-				this.logger.appendLine(
-					`[SelfImprovingManager] Code index available: ${codeIndexInfo.hits} hits`,
-				)
+				this.logger.appendLine(`[SelfImprovingManager] Code index available: ${codeIndexInfo.hits} hits`)
 			}
 
 			this.runtime.store.incrementToolIterations(
@@ -535,9 +559,7 @@ export class SelfImprovingManager {
 				this.logger.appendLine(`[SelfImproving] Review team rejected ${rejectedPatterns.length} patterns`)
 			}
 
-			const actions = this.runtime.improvementApplier.generateActions([
-				...approvedPatterns,
-			] as LearnedPattern[])
+			const actions = this.runtime.improvementApplier.generateActions([...approvedPatterns] as LearnedPattern[])
 			const safeActions = Array.isArray(actions) ? actions : []
 			for (const action of safeActions) {
 				this.runtime.store.addAction(action)
@@ -677,8 +699,7 @@ export class SelfImprovingManager {
 			}
 
 			const lines = results.map(
-				(r, i) =>
-					`${i + 1}. ${r.filePath} (score: ${r.score.toFixed(3)})${r.line ? `:${r.line}` : ""}`,
+				(r, i) => `${i + 1}. ${r.filePath} (score: ${r.score.toFixed(3)})${r.line ? `:${r.line}` : ""}`,
 			)
 			return `\n## Code Index Results\n${lines.join("\n")}\n`
 		} catch (error) {
@@ -1044,29 +1065,30 @@ export class SelfImprovingManager {
 	}
 
 	private updateReviewTelemetry(store: LearningStore, actions: ImprovementAction[]): void {
-		const telemetry = store.getTelemetry()
-		const safeActions = Array.isArray(actions) ? actions : []
-		store.updateTelemetry({
-			lastReviewAt: Date.now(),
-			promptEnrichmentUses:
-				telemetry.promptEnrichmentUses +
-				safeActions.filter((action) => action.actionType === "PROMPT_ENRICHMENT").length,
-			toolPreferenceUses:
-				telemetry.toolPreferenceUses +
-				safeActions.filter((action) => action.actionType === "TOOL_PREFERENCE").length,
-			errorAvoidanceUses:
-				telemetry.errorAvoidanceUses +
-				safeActions.filter((action) => action.actionType === "ERROR_AVOIDANCE").length,
-			skillSuggestionCount:
-				telemetry.skillSuggestionCount +
-				safeActions.filter(
-					(action) =>
-						action.actionType === "SKILL_SUGGESTION" ||
-						action.actionType === "SKILL_CREATE" ||
-						action.actionType === "SKILL_UPDATE" ||
-						action.actionType === "SKILL_CREATE_FROM_SCRATCH",
-				).length,
-		})
+		try {
+			const telemetry = store.getTelemetry()
+			const safeActions = Array.isArray(actions) ? actions : []
+			const countByType = (type: string): number =>
+				safeActions.filter((action) => action.actionType === type).length
+
+			store.updateTelemetry({
+				lastReviewAt: Date.now(),
+				promptEnrichmentUses: telemetry.promptEnrichmentUses + countByType("PROMPT_ENRICHMENT"),
+				toolPreferenceUses: telemetry.toolPreferenceUses + countByType("TOOL_PREFERENCE"),
+				errorAvoidanceUses: telemetry.errorAvoidanceUses + countByType("ERROR_AVOIDANCE"),
+				skillSuggestionCount:
+					telemetry.skillSuggestionCount +
+					safeActions.filter(
+						(action) =>
+							action.actionType === "SKILL_SUGGESTION" ||
+							action.actionType === "SKILL_CREATE" ||
+							action.actionType === "SKILL_UPDATE" ||
+							action.actionType === "SKILL_CREATE_FROM_SCRATCH",
+					).length,
+			})
+		} catch (error) {
+			this.logger.appendLine(`[SelfImproving] updateReviewTelemetry error: ${error?.message ?? error}`)
+		}
 	}
 
 	private resolveSkillProvenance(name: string, source?: "global" | "project"): string {

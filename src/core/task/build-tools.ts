@@ -20,7 +20,7 @@ interface BuildToolsOptions {
 	cwd: string
 	mode: string | undefined
 	customModes: ModeConfig[] | undefined
-	experiments: Record<string, boolean> | undefined
+	experiments: Partial<import("@roo-code/types").Experiments> | undefined
 	apiConfiguration: ProviderSettings | undefined
 	disabledTools?: string[]
 	modelInfo?: ModelInfo

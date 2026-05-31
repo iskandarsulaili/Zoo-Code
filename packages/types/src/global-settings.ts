@@ -216,6 +216,25 @@ export const globalSettingsSchema = z.object({
 	 */
 	verificationLevel: z.enum(["strict", "lenient", "bypass"]).optional(),
 
+	/** Verification engine gate — whether to run build check */
+	verificationCheckBuild: z.boolean().optional(),
+	/** Verification engine gate — whether to run lint check */
+	verificationCheckLint: z.boolean().optional(),
+	/** Verification engine gate — whether to run type check */
+	verificationCheckTypes: z.boolean().optional(),
+	/** Verification engine gate — whether to run tests */
+	verificationCheckTests: z.boolean().optional(),
+	/** Build command (e.g. "npm run build" or "cargo build") */
+	verificationBuildCommand: z.string().optional(),
+	/** Lint command (e.g. "npm run lint" or "cargo clippy") */
+	verificationLintCommand: z.string().optional(),
+	/** Type check command (e.g. "npm run typecheck" or "mypy .") */
+	verificationTypeCheckCommand: z.string().optional(),
+	/** Test command (e.g. "npm test" or "cargo test") */
+	verificationTestCommand: z.string().optional(),
+	/** Per-gate timeout in ms (default 60000) */
+	verificationTimeoutMs: z.number().min(1000).optional(),
+
 	codebaseIndexModels: codebaseIndexModelsSchema.optional(),
 	codebaseIndexConfig: codebaseIndexConfigSchema.optional(),
 
